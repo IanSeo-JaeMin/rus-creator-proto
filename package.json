@@ -106,8 +106,8 @@
       "esbuild"
     ],
     "overrides": {
-      "get-uv-event-loop-napi-h": "^1.0.7",
-      "ffi-napi>get-uv-event-loop-napi-h": "^1.0.7"
+      "get-uv-event-loop-napi-h": "1.0.6",
+      "ffi-napi>get-uv-event-loop-napi-h": "1.0.6"
     }
   }
 }
