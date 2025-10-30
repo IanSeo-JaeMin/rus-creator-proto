@@ -48,10 +48,31 @@ pnpm build:win
 ```
 
 **필수 요구사항:**
-- Node.js (v22 권장)
-- pnpm
-- Visual Studio Build Tools (node-gyp를 위한)
-- Python (node-gyp를 위한)
+
+1. **Node.js** (v22 권장)
+   - 다운로드: https://nodejs.org/
+
+2. **pnpm**
+   ```bash
+   npm install -g pnpm
+   ```
+
+3. **Visual Studio Build Tools** (필수 - native modules 빌드용)
+   - 다운로드: https://visualstudio.microsoft.com/downloads/
+   - 설치 시 **"Desktop development with C++"** 워크로드 선택
+   - 또는 **"Build Tools for Visual Studio"** 다운로드 후 C++ 도구 설치
+
+4. **Python** (node-gyp를 위한, 대부분 Node.js 설치 시 포함됨)
+   - Python 3.x 필요
+   - 설치 확인: `python --version`
+
+**설치 확인:**
+```bash
+# Visual Studio Build Tools 확인
+where cl
+# 또는
+gyp --version
+```
 
 **빌드 스크립트:**
 - `pnpm build:win` - 전체 빌드 (의존성 설치 + 빌드)

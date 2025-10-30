@@ -12,8 +12,15 @@ if (process.platform === 'win32') {
 
   electronBuilder.on('close', (code) => {
     if (code !== 0) {
-      console.warn('Warning: Failed to rebuild native dependencies. This may be expected on non-Windows platforms.');
-      process.exit(0); // Don't fail the installation
+      console.error('ERROR: Failed to rebuild native dependencies for Electron.');
+      console.error('');
+      console.error('To fix this issue, please install Visual Studio Build Tools:');
+      console.error('1. Download from: https://visualstudio.microsoft.com/downloads/');
+      console.error('2. Install "Desktop development with C++" workload');
+      console.error('   OR install "Build Tools for Visual Studio" with C++ tools');
+      console.error('');
+      console.error('After installing, run: npm run rebuild:win');
+      process.exit(1); // Fail the installation to alert the user
     }
   });
 } else {
