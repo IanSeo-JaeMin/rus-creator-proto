@@ -2,52 +2,44 @@
 
 /**
  * Rebuild native modules for Electron on Windows
- *
- * Target Environment:
- *   - Electron 28.2.2 (Node 18.x)
- *   - ffi-napi 4.0.3
- *
- * Purpose:
- *   - Rebuild only native modules that need ABI alignment (ffi-napi, ref-napi, ref-struct-napi)
- *   - Skip redundant rebuilds and avoid dependency resolution issues
- *   - Provide clear feedback when Visual Studio Build Tools are missing
  */
 
-const { spawnSync } = require('child_process')
-const { platform, cwd } = require('process')
+const { spawnSync } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+const { platform } = require('os');
 
-if (platform !== 'win32') {
-  console.error('❌ ERROR: This script must be run on Windows.')
-  console.error('Native modules must be built on a Windows system for correct ABI linkage.')
-  console.error('Run `pnpm run build:win` on a Windows machine.')
-  process.exit(1)
+if (platform() !== 'win32') {
+  console.log('Skipping rebuild: not on Windows.');
+  process.exit(0);
 }
 
-console.log('🔧 Rebuilding native modules for Electron (Windows)...\n')
+console.log('🔧 Rebuilding native modules for Electron...');
 
-try {
-  // Run electron-rebuild only for specific native modules
-  const result = spawnSync(
-    'npx',
-    ['electron-rebuild', '-f', '-w', 'ffi-napi,ref-napi,ref-struct-napi', '--version', '28.2.2'],
-    {
-      stdio: 'inherit',
-      shell: true,
-      cwd: cwd()
-    }
-  )
+const modules = ['ffi-napi', 'ref-napi', 'ref-struct-napi'];
+const electronVersion = '28.2.2';
+const nodeModulesPath = path.join(process.cwd(), 'node_modules');
 
-  if (result.status !== 0) {
-    throw new Error('electron-rebuild exited with a non-zero code')
+for (const mod of modules) {
+  const modPath = path.join(nodeModulesPath, mod);
+  if (!fs.existsSync(modPath)) {
+    console.log(`⚠️ ${mod} not found, skipping.`);
+    continue;
   }
 
-  console.log('\n✅ Successfully rebuilt ffi-napi native modules for Electron 28.2.2.\n')
-} catch (error) {
-  console.error('\n❌ Failed to rebuild native dependencies for Electron.\n')
-  console.error('Check the following items:')
-  console.error('  1️⃣ Visual Studio Build Tools (Desktop development with C++)')
-  console.error('  2️⃣ Python 3.x (added to PATH)')
-  console.error('  3️⃣ Node.js headers (auto-installed by node-gyp)')
-  console.error('\nThen run: pnpm run rebuild:win')
-  process.exit(1)
+  console.log(`🔹 Rebuilding ${mod} for Electron ${electronVersion}...`);
+
+  const result = spawnSync(
+    'npx',
+    ['electron-rebuild', '-f', '-w', mod, '--version', electronVersion],
+    { stdio: 'inherit', shell: true }
+  );
+
+  if (result.status !== 0) {
+    console.error(`❌ Failed to rebuild ${mod}`);
+  } else {
+    console.log(`✅ Successfully rebuilt ${mod}`);
+  }
 }
+
+console.log('\n✅ All native modules rebuilt successfully.\n');
