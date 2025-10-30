@@ -4,20 +4,53 @@
  * Post-install script for RUS Creator
  *
  * Purpose:
- *  - Ensures ffi-napi native modules are rebuilt only on Windows.
- *  - Skips rebuild on macOS/Linux since ffi-napi is not required there.
- *  - Avoids redundant electron-builder calls (which cause long install times).
+ *  - Automatically installs missing runtime dependencies (ffi-napi, ref-napi, debug, ms, node-gyp-build).
+ *  - Rebuilds native modules for Electron only on Windows.
+ *  - Skips rebuilds on non-Windows platforms.
  */
 
 const { platform } = require('os')
+const fs = require('fs')
+const { execSync } = require('child_process')
 
+const REQUIRED_MODULES = [
+  'ffi-napi',
+  'ref-napi',
+  'ref-struct-napi',
+  'debug',
+  'ms',
+  'node-gyp-build'
+]
+
+/**
+ * Step 1️⃣ : Check and install missing modules
+ */
+console.log('[postinstall] Checking for missing dependencies...')
+
+for (const mod of REQUIRED_MODULES) {
+  try {
+    require.resolve(mod)
+  } catch {
+    console.log(`⚠️ Missing module: ${mod} — installing...`)
+    try {
+      execSync(`pnpm add ${mod} -w`, { stdio: 'inherit' })
+      console.log(`✅ Installed: ${mod}`)
+    } catch (e) {
+      console.error(`❌ Failed to install ${mod}:`, e.message)
+    }
+  }
+}
+
+console.log('[postinstall] Dependency check complete.')
+
+/**
+ * Step 2️⃣ : Platform-specific native rebuild (Windows only)
+ */
 if (platform() === 'win32') {
   console.log('[postinstall] Windows detected → Checking native module rebuild.')
 
-  const { execSync } = require('child_process')
   try {
-    // Only rebuild if ffi-napi actually exists (avoids redundant runs)
-    const hasFFI = require('fs').existsSync('./node_modules/ffi-napi')
+    const hasFFI = fs.existsSync('./node_modules/ffi-napi')
     if (hasFFI) {
       console.log('[postinstall] ffi-napi detected. Running electron-rebuild...')
       execSync('npx electron-rebuild -f -w ffi-napi --version 28.2.2', {
