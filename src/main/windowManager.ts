@@ -39,8 +39,8 @@ if (process.platform !== 'win32') {
   try {
     logger.info('Attempting to load ffi-napi...')
     ffi = require('ffi-napi')
-    logger.info('ffi-napi loaded successfully')
-    
+    logger.info('ffi-napi loaded successfully', !ffi.Library)
+
     logger.info('Attempting to load ref-napi...')
     ref = require('ref-napi')
     logger.info('ref-napi loaded successfully')
@@ -73,7 +73,7 @@ if (process.platform !== 'win32') {
     logger.error('Error message:', error?.message || String(error))
     logger.error('Error stack:', error?.stack || 'No stack trace')
     logger.error('Error code:', error?.code || 'No error code')
-    
+
     // Additional diagnostics for DLL loading errors
     if (error?.message?.includes('native callback') || error?.message?.includes('dlopen')) {
       logger.error('=== DLL Loading Error Diagnostics ===')
@@ -81,7 +81,7 @@ if (process.platform !== 'win32') {
       const { join } = require('path')
       const { app } = require('electron')
       const isDev = require('@electron-toolkit/utils').is.dev
-      
+
       let moduleBasePath: string
       if (isDev) {
         moduleBasePath = join(__dirname, '../../node_modules')
@@ -93,16 +93,16 @@ if (process.platform !== 'win32') {
           moduleBasePath = join(appPath, 'node_modules')
         }
       }
-      
+
       const ffiNapiPath = join(moduleBasePath, 'ffi-napi')
       logger.error(`Checking ffi-napi at: ${ffiNapiPath}`)
       logger.error(`ffi-napi directory exists: ${existsSync(ffiNapiPath)}`)
-      
+
       if (existsSync(ffiNapiPath)) {
         try {
           const files = readdirSync(ffiNapiPath)
           logger.error(`ffi-napi contents: ${files.join(', ')}`)
-          
+
           // Look for .node files
           const nodeFiles = files.filter((f: string) => f.endsWith('.node'))
           logger.error(`Found .node files: ${nodeFiles.join(', ')}`)
@@ -110,7 +110,7 @@ if (process.platform !== 'win32') {
           logger.error(`Error reading ffi-napi directory: ${err}`)
         }
       }
-      
+
       logger.error('=== Solution ===')
       logger.error('Native modules were not built for this Electron version.')
       logger.error('Please run the following commands on Windows:')
@@ -119,14 +119,14 @@ if (process.platform !== 'win32') {
       logger.error('3. Restart the application')
       logger.error('=====================================')
     }
-    
+
     if (error?.code === 'MODULE_NOT_FOUND') {
       logger.error('MODULE_NOT_FOUND - checking module paths...')
       const { existsSync } = require('fs')
       const { join } = require('path')
       const { app } = require('electron')
       const isDev = require('@electron-toolkit/utils').is.dev
-      
+
       let modulePath: string
       if (isDev) {
         modulePath = join(__dirname, '../../node_modules/ffi-napi')
