@@ -32,10 +32,12 @@
       "node_modules/ffi-napi/**",
       "node_modules/ref-napi/**",
       "node_modules/ref-struct-napi/**",
-      "node_modules/debug/**"
+      "node_modules/debug/**",
+      "node_modules/ms/**"
     ],
     "files": [
-      "out"
+      "out",
+      "node_modules/**/*"
     ],
     "directories": {
       "output": "dist"
@@ -79,7 +81,8 @@
     "ffi-napi": "^4.0.3",
     "ref-napi": "^3.0.3",
     "ref-struct-napi": "^1.1.1",
-    "debug": "^4.3.4"
+    "debug": "^4.3.4",
+    "ms": "^2.1.3"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
