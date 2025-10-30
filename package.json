@@ -31,7 +31,8 @@
     "asarUnpack": [
       "node_modules/ffi-napi/**",
       "node_modules/ref-napi/**",
-      "node_modules/ref-struct-napi/**"
+      "node_modules/ref-struct-napi/**",
+      "node_modules/debug/**"
     ],
     "files": [
       "out"
@@ -77,7 +78,8 @@
     "@electron-toolkit/utils": "^4.0.0",
     "ffi-napi": "^4.0.3",
     "ref-napi": "^3.0.3",
-    "ref-struct-napi": "^1.1.1"
+    "ref-struct-napi": "^1.1.1",
+    "debug": "^4.3.4"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
