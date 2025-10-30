@@ -29,6 +29,7 @@
     "asar": true,
     "npmRebuild": false,
     "asarUnpack": [
+      "**/*.node",
       "node_modules/ffi-napi/**",
       "node_modules/ref-napi/**",
       "node_modules/ref-struct-napi/**",
@@ -37,8 +38,7 @@
       "node_modules/node-gyp-build/**"
     ],
     "files": [
-      "out",
-      "node_modules/**/*"
+      "out"
     ],
     "directories": {
       "output": "dist"

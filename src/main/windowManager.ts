@@ -38,26 +38,75 @@ if (process.platform !== 'win32') {
   let user32: any
   let nativeModulesAvailable = false
 
-  const basePath = app.isPackaged
-    ? path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules')
-    : path.join(__dirname, '..', '..', 'node_modules')
-
   try {
     logger.info('Attempting to load ffi-napi...')
-    ffi = require(path.join(basePath, 'ffi-napi'))
-    logger.info('ffi-napi loaded successfully', !ffi.Library)
 
-    logger.info('Attempting to load ref-napi...')
-    ref = require(path.join(basePath, 'ref-napi'))
-    logger.info('ref-napi loaded successfully')
+    // === Determine exact path for ffi-napi .node ===
+    const ffiNodePath = app.isPackaged
+      ? path.join(
+          process.resourcesPath,
+          'app.asar.unpacked',
+          'node_modules',
+          'ffi-napi',
+          'build',
+          'Release',
+          'ffi_bindings.node'
+        )
+      : path.join(
+          __dirname,
+          '..',
+          '..',
+          'node_modules',
+          'ffi-napi',
+          'build',
+          'Release',
+          'ffi_bindings.node'
+        )
 
-    // --- FFI Definitions for Windows API ---
-    // HWND is a pointer (void pointer type)
-    logger.info('Creating HWNDType...')
+    const refNodePath = app.isPackaged
+      ? path.join(
+          process.resourcesPath,
+          'app.asar.unpacked',
+          'node_modules',
+          'ref-napi',
+          'build',
+          'Release',
+          'binding.node'
+        )
+      : path.join(
+          __dirname,
+          '..',
+          '..',
+          'node_modules',
+          'ref-napi',
+          'build',
+          'Release',
+          'binding.node'
+        )
+
+    logger.info(`[ffi-napi] trying to load native binding at: ${ffiNodePath}`)
+    logger.info(`[ref-napi] trying to load native binding at: ${refNodePath}`)
+
+    // 직접 .node 경로에서 require
+    const ffiBinding = require(ffiNodePath)
+    const refBinding = require(refNodePath)
+
+    // 패키지 엔트리 파일 경로 지정
+    const ffiMain = app.isPackaged
+      ? path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'ffi-napi')
+      : path.join(__dirname, '..', '..', 'node_modules', 'ffi-napi')
+    const refMain = app.isPackaged
+      ? path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'ref-napi')
+      : path.join(__dirname, '..', '..', 'node_modules', 'ref-napi')
+
+    ffi = require(ffiMain)
+    ref = require(refMain)
+
+    logger.info('ffi-napi and ref-napi loaded successfully.')
+    logger.info(`ffi-napi path resolved to: ${ffiMain}`)
+
+    // FFI Definitions
     const HWNDType = ref.types.void
-    logger.info('HWNDType created')
-
-    logger.info('Creating user32 library...')
     user32 = new ffi.Library('user32', {
       FindWindowA: [HWNDType, ['string', 'string']],
       EnumWindows: ['int', ['pointer', 'long']],
@@ -72,7 +121,6 @@ if (process.platform !== 'win32') {
     logger.info('user32 library created successfully')
 
     nativeModulesAvailable = true
-    logger.info('Native modules (ffi-napi, ref-napi) loaded successfully.')
   } catch (error: any) {
     logger.error('Failed to load native modules (ffi-napi, ref-napi)')
     logger.error('Error type:', error?.constructor?.name || typeof error)
