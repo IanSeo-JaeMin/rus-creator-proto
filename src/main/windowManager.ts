@@ -1,5 +1,7 @@
 import type { ChildProcess } from 'child_process'
 import { logger } from './logger'
+import path from 'path'
+import { app } from 'electron'
 
 // Define a common interface for the manager for type safety
 export interface IWindowManager {
@@ -36,13 +38,17 @@ if (process.platform !== 'win32') {
   let user32: any
   let nativeModulesAvailable = false
 
+  const basePath = app.isPackaged
+    ? path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules')
+    : path.join(__dirname, '..', '..', 'node_modules')
+
   try {
     logger.info('Attempting to load ffi-napi...')
-    ffi = require('ffi-napi')
+    ffi = require(path.join(basePath, 'ffi-napi'))
     logger.info('ffi-napi loaded successfully', !ffi.Library)
 
     logger.info('Attempting to load ref-napi...')
-    ref = require('ref-napi')
+    ref = require(path.join(basePath, 'ref-napi'))
     logger.info('ref-napi loaded successfully')
 
     // --- FFI Definitions for Windows API ---

@@ -38,47 +38,214 @@ $ pnpm build:linux
 
 #### Windows 빌드 방법
 
-**⚠️ 중요:** Windows 빌드는 반드시 **Windows 환경에서 직접 빌드**해야 합니다.
+이 문서는 **새로운 Windows 환경에서 rus-creator-proto 프로젝트를 처음 세팅할 때**
+필요한 모든 개발 환경 설정 절차를 정리한 가이드입니다.
 
-**빌드 방법:**
-```bash
-# Windows에서 실행
+---
+
+## 🧱 System Requirements
+
+| 구성 요소                 | 권장 버전             | 비고                                |
+| ------------------------- | --------------------- | ----------------------------------- |
+| OS                        | Windows 10 / 11 (x64) | 관리자 권한 필요                    |
+| Node.js                   | v20.x (LTS 이상)      | NVM 사용 권장                       |
+| PNPM                      | v10.x 이상            | 전역 설치 필요                      |
+| Python                    | 3.8 ~ 3.11            | node-gyp용                          |
+| Visual Studio Build Tools | 2022 (v17.x)          | “Desktop development with C++” 필수 |
+| Electron                  | 38.5.0                | Node 20 기반                        |
+
+---
+
+## ⚙️ 1. 필수 도구 설치
+
+### 1-1. Node.js 설치
+
+[NVM for Windows](https://github.com/coreybutler/nvm-windows/releases) 설치 후:
+
+```powershell
+nvm install 20.12.2
+nvm use 20.12.2
+```
+
+### 1-2. PNPM 설치
+
+```powershell
+npm install -g pnpm
+```
+
+### 1-3. Python 설치
+
+```powershell
+winget install Python.Python.3.11
+python --version
+```
+
+### 1-4. Visual Studio Build Tools 설치
+
+[공식 다운로드 페이지](https://visualstudio.microsoft.com/downloads/) →  
+“**Build Tools for Visual Studio 2022**” 선택 후 아래 항목 체크:
+
+- ✅ MSVC v143 C++ x64/x86 build tools
+- ✅ Windows 10 SDK (10.0.x)
+- ✅ CMake tools for Windows
+- ✅ Windows Debugging Tools
+
+---
+
+## 🧩 2. 환경 변수 설정
+
+PowerShell(관리자 아님)에서 실행:
+
+```powershell
+setx GYP_MSVS_VERSION 2022
+```
+
+터미널 재시작 후 확인:
+
+```powershell
+echo $env:GYP_MSVS_VERSION
+# 출력: 2022
+```
+
+> 💡 node-gyp이 VS2022를 인식하지 못하는 문제를 방지하기 위함입니다.
+
+---
+
+## 🪄 3. 프로젝트 클론 및 패키지 설치
+
+```powershell
+git clone https://github.com/<YOUR_ORG>/rus-creator-proto.git
+cd rus-creator-proto
 pnpm install
+```
+
+---
+
+## 🧰 4. Native Module (ffi-napi) 세팅
+
+Electron 38.5.0 + Node 20.x 환경에서는 기존 `ffi-napi@4.0.3`이 빌드되지 않기 때문에  
+호환 포크 버전을 사용합니다.
+
+```powershell
+pnpm add ffi-napi@4.0.3 ref-napi@3.0.3
+```
+
+빌드 시 에러 발생 시, 아래 명령으로 재컴파일합니다:
+
+```powershell
+pnpx electron-rebuild -f -w ffi-napi --version 38.5.0
+```
+
+성공 시 로그:
+
+```
+√ Rebuild Complete
+```
+
+> 💡 이 명령은 Electron 버전에 맞게 native 모듈을 재컴파일합니다.
+
+---
+
+## 🧩 5. Visual Studio Build Tools 인식 확인
+
+```powershell
+where msbuild
+where cl
+```
+
+정상일 경우:
+
+```
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\amd64\MSBuild.exe
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.x.xxxxx\bin\Hostx64\x64\cl.exe
+```
+
+---
+
+## 🧠 6. Electron 앱 빌드 & 실행
+
+### 개발용 실행
+
+```powershell
+pnpm dev
+```
+
+### 윈도우 빌드
+
+```powershell
 pnpm build:win
 ```
 
-**필수 요구사항:**
+> 결과물은 `/dist` 폴더에 생성됩니다.
 
-1. **Node.js** (v22 권장)
-   - 다운로드: https://nodejs.org/
+---
 
-2. **pnpm**
-   ```bash
-   npm install -g pnpm
-   ```
+## 🧾 7. 문제 해결 가이드
 
-3. **Visual Studio Build Tools** (필수 - native modules 빌드용)
-   - 다운로드: https://visualstudio.microsoft.com/downloads/
-   - 설치 시 **"Desktop development with C++"** 워크로드 선택
-   - 또는 **"Build Tools for Visual Studio"** 다운로드 후 C++ 도구 설치
+| 증상                                            | 원인                                      | 해결책                              |
+| ----------------------------------------------- | ----------------------------------------- | ----------------------------------- |
+| `Could not find any Visual Studio installation` | VS Build Tools 미설치 또는 PATH 인식 실패 | `setx GYP_MSVS_VERSION 2022` 실행   |
+| `error C2440` (get-uv-event-loop-napi-h)        | ffi-napi 구버전 불호환                    | Electron rebuild 수행               |
+| `MODULE_NOT_FOUND: ffi_bindings.node`           | rebuild 미수행                            | `pnpx electron-rebuild` 재실행      |
+| Python not found                                | node-gyp용 Python 누락                    | `winget install Python.Python.3.11` |
 
-4. **Python** (node-gyp를 위한, 대부분 Node.js 설치 시 포함됨)
-   - Python 3.x 필요
-   - 설치 확인: `python --version`
+---
 
-**설치 확인:**
-```bash
-# Visual Studio Build Tools 확인
-where cl
-# 또는
-gyp --version
+## 🧩 8. 확인용 테스트 코드
+
+```js
+const ffi = require('ffi-napi')
+const ref = require('ref-napi')
+
+console.log('ffi loaded:', !!ffi.Library)
 ```
 
-**빌드 스크립트:**
-- `pnpm build:win` - 전체 빌드 (의존성 설치 + 빌드)
-- `pnpm build:win:local` - 빠른 빌드 (이미 의존성이 설치된 경우)
+실행 시:
 
-**참고:** 이 프로젝트는 현재 프로토타입 단계이며, Windows에서 직접 빌드하도록 설정되어 있습니다. CI/CD 워크플로우(`.github/workflows/build-windows.yml`)는 프로덕션 단계에서 사용할 수 있도록 준비되어 있습니다.
+```
+ffi loaded: true
+```
+
+가 출력되면 빌드 성공입니다 ✅
+
+---
+
+## 📦 9. 빌드 환경 백업 팁
+
+프로젝트 루트에 `.npmrc` 파일을 추가해두면, 다른 PC에서도 동일한 환경 유지가 가능합니다.
+
+```ini
+node-linker=hoisted
+strict-peer-dependencies=false
+auto-install-peers=true
+```
+
+---
+
+## 🧭 Version Summary
+
+| 항목          | 버전             |
+| ------------- | ---------------- |
+| Node.js       | 20.12.2          |
+| PNPM          | 10.20.0          |
+| Electron      | 38.5.0           |
+| ffi-napi      | 4.0.3            |
+| ref-napi      | 3.0.3            |
+| Visual Studio | 2022 Build Tools |
+| Python        | 3.11.x           |
+
+---
+
+## ✅ 최종 체크리스트
+
+- [x] Node + PNPM 설치 완료
+- [x] Visual Studio Build Tools 설치 및 인식
+- [x] GYP_MSVS_VERSION=2022 설정
+- [x] Python 설치
+- [x] `pnpm install` 정상 완료
+- [x] `pnpx electron-rebuild` 성공
+- [x] 앱 실행 정상 확인 (`ffi loaded: true`)
+      .
 
 ## macOS 빌드 파일 실행 시 "손상된 파일" 오류 해결 방법
 
