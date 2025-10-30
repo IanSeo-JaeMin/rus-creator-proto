@@ -27,13 +27,18 @@
     "productName": "RUS Creator",
     "appId": "io.hutom.rus-creator",
     "asar": true,
-    "npmRebuild": true,
+    "npmRebuild": false,
     "asarUnpack": [
-      "**/*.node",
       "node_modules/ffi-napi/**",
       "node_modules/ref-napi/**",
       "node_modules/ref-struct-napi/**"
     ],
+    "files": [
+      "out"
+    ],
+    "directories": {
+      "output": "dist"
+    },
     "win": {
       "target": [
         {
