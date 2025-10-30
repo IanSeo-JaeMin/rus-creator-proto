@@ -101,6 +101,9 @@
     "onlyBuiltDependencies": [
       "electron",
       "esbuild"
-    ]
+    ],
+    "overrides": {
+      "get-uv-event-loop-napi-h": "^1.0.7"
+    }
   }
 }
