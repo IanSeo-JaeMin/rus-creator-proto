@@ -54,6 +54,9 @@ class Embedder
     [DllImport("user32.dll")]
     static extern bool GetClientRect(IntPtr hWnd, out System.Drawing.Rectangle lpRect);
 
+    [DllImport("user32.dll")]
+    static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
     // SetWindowPos flags
     const uint SWP_NOMOVE = 0x0002;
     const uint SWP_NOSIZE = 0x0001;
@@ -169,6 +172,27 @@ class Embedder
                     return;
                 }
 
+                // Get process ID before waiting (UseShellExecute = true may cause issues with proc.Id)
+                int processId = 0;
+                try
+                {
+                    // Wait a moment for process to initialize
+                    Thread.Sleep(100);
+                    if (!proc.HasExited)
+                    {
+                        processId = proc.Id;
+                    }
+                    else
+                    {
+                        // Process exited quickly, try to find it by window title later
+                        Console.Error.WriteLine("WARNING: Process exited quickly, PID may be unavailable");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"WARNING: Could not get process ID: {ex.Message}");
+                }
+
                 // Wait for window to appear (up to 30 seconds)
                 // First wait a bit for the terminal/launcher to start
                 Thread.Sleep(2000);
@@ -218,7 +242,27 @@ class Embedder
 
                 // Output HWND and PID for further operations
                 // Format: SUCCESS:HWND:PID
-                Console.WriteLine($"SUCCESS:{childHwnd.ToInt64()}:{proc.Id}");
+                // If PID is 0 or unavailable, output 0
+                int finalPid = processId;
+                if (finalPid == 0)
+                {
+                    try
+                    {
+                        // Try to get PID from window handle
+                        // Note: This is a fallback, may not always work
+                        uint processIdFromHwnd = 0;
+                        uint threadId = GetWindowThreadProcessId(childHwnd, out processIdFromHwnd);
+                        if (processIdFromHwnd != 0)
+                        {
+                            finalPid = (int)processIdFromHwnd;
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore errors
+                    }
+                }
+                Console.WriteLine($"SUCCESS:{childHwnd.ToInt64()}:{finalPid}");
 
             }
             else if (command == "show")

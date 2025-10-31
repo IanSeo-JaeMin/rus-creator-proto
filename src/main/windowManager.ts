@@ -319,41 +319,49 @@ if (process.platform !== 'win32') {
     logger.info('Cleaning up embedded windows...')
     for (const [viewName, win] of embeddedWindows.entries()) {
       // Try to kill the process using PID if available
-      if (win.pid && helperAvailable) {
+      // Skip if PID is "0", "N/A", or undefined
+      if (win.pid && win.pid !== '0' && win.pid !== 'N/A' && helperAvailable) {
         try {
-          logger.info(`Terminating process for ${viewName} (PID: ${win.pid})`)
-          // Use taskkill on Windows to terminate the process
-          if (process.platform === 'win32') {
-            try {
-              // Try graceful termination first
-              execSync(`taskkill /PID ${win.pid} /T`, { stdio: 'ignore', timeout: 2000 })
-              logger.info(`Terminated process ${win.pid} for ${viewName}`)
-            } catch (error: any) {
-              // If graceful termination fails, try force kill
-              try {
-                execSync(`taskkill /F /PID ${win.pid} /T`, { stdio: 'ignore', timeout: 2000 })
-                logger.info(`Force killed process ${win.pid} for ${viewName}`)
-              } catch (forceError) {
-                logger.warn(`Failed to kill process ${win.pid} for ${viewName}:`, forceError)
-              }
-            }
+          const pidNum = parseInt(win.pid, 10)
+          if (isNaN(pidNum) || pidNum <= 0) {
+            logger.warn(`Invalid PID for ${viewName}: ${win.pid}`)
           } else {
-            // On other platforms, use kill command
-            try {
-              execSync(`kill ${win.pid}`, { stdio: 'ignore', timeout: 2000 })
-              logger.info(`Terminated process ${win.pid} for ${viewName}`)
-            } catch (error: any) {
+            logger.info(`Terminating process for ${viewName} (PID: ${pidNum})`)
+            // Use taskkill on Windows to terminate the process
+            if (process.platform === 'win32') {
               try {
-                execSync(`kill -9 ${win.pid}`, { stdio: 'ignore', timeout: 2000 })
-                logger.info(`Force killed process ${win.pid} for ${viewName}`)
-              } catch (forceError) {
-                logger.warn(`Failed to kill process ${win.pid} for ${viewName}:`, forceError)
+                // Try graceful termination first
+                execSync(`taskkill /PID ${pidNum} /T`, { stdio: 'ignore', timeout: 2000 })
+                logger.info(`Terminated process ${pidNum} for ${viewName}`)
+              } catch (error: any) {
+                // If graceful termination fails, try force kill
+                try {
+                  execSync(`taskkill /F /PID ${pidNum} /T`, { stdio: 'ignore', timeout: 2000 })
+                  logger.info(`Force killed process ${pidNum} for ${viewName}`)
+                } catch (forceError) {
+                  logger.warn(`Failed to kill process ${pidNum} for ${viewName}:`, forceError)
+                }
+              }
+            } else {
+              // On other platforms, use kill command
+              try {
+                execSync(`kill ${pidNum}`, { stdio: 'ignore', timeout: 2000 })
+                logger.info(`Terminated process ${pidNum} for ${viewName}`)
+              } catch (error: any) {
+                try {
+                  execSync(`kill -9 ${pidNum}`, { stdio: 'ignore', timeout: 2000 })
+                  logger.info(`Force killed process ${pidNum} for ${viewName}`)
+                } catch (forceError) {
+                  logger.warn(`Failed to kill process ${pidNum} for ${viewName}:`, forceError)
+                }
               }
             }
           }
         } catch (error) {
           logger.error(`Error terminating process ${win.pid} for ${viewName}:`, error)
         }
+      } else if (!win.pid || win.pid === '0' || win.pid === 'N/A') {
+        logger.warn(`No valid PID available for ${viewName}, cannot terminate process`)
       } else if (win.process && !win.process.killed) {
         // Fallback to process object if PID is not available
         try {
