@@ -41,67 +41,26 @@ if (process.platform !== 'win32') {
   try {
     logger.info('Attempting to load ffi-napi...')
 
-    // === Determine exact path for ffi-napi .node ===
-    const ffiNodePath = app.isPackaged
-      ? path.join(
-          process.resourcesPath,
-          'app.asar.unpacked',
-          'node_modules',
-          'ffi-napi',
-          'build',
-          'Release',
-          'ffi_bindings.node'
-        )
-      : path.join(
-          __dirname,
-          '..',
-          '..',
-          'node_modules',
-          'ffi-napi',
-          'build',
-          'Release',
-          'ffi_bindings.node'
-        )
+    const basePath = app.isPackaged
+      ? path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules')
+      : path.join(__dirname, '..', '..', 'node_modules')
 
-    const refNodePath = app.isPackaged
-      ? path.join(
-          process.resourcesPath,
-          'app.asar.unpacked',
-          'node_modules',
-          'ref-napi',
-          'build',
-          'Release',
-          'binding.node'
-        )
-      : path.join(
-          __dirname,
-          '..',
-          '..',
-          'node_modules',
-          'ref-napi',
-          'build',
-          'Release',
-          'binding.node'
-        )
+    const ffiNode = path.join(basePath, 'ffi-napi', 'build', 'Release', 'ffi_bindings.node')
+    const refNode = path.join(basePath, 'ref-napi', 'build', 'Release', 'binding.node')
 
-    logger.info(`[ffi-napi] trying to load native binding at: ${ffiNodePath}`)
-    logger.info(`[ref-napi] trying to load native binding at: ${refNodePath}`)
+    // --- 강제 native binding preload (Electron 런타임 호환) ---
+    const ffiBinding = require(ffiNode)
+    const refBinding = require(refNode)
 
-    // 직접 .node 경로에서 require
-    // ⚙️ Load native bindings explicitly (side effect only)
-    // const _ffiBinding = require(ffiNodePath)
-    // const _refBinding = require(refNodePath)
-
-    // 패키지 엔트리 파일 경로 지정
-    const ffiMain = app.isPackaged
-      ? path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'ffi-napi')
-      : path.join(__dirname, '..', '..', 'node_modules', 'ffi-napi')
-    const refMain = app.isPackaged
-      ? path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'ref-napi')
-      : path.join(__dirname, '..', '..', 'node_modules', 'ref-napi')
-
+    // --- 이후 ffi/ref-napi 로드 시 자동으로 이 바인딩 사용 ---
+    const ffiMain = path.join(basePath, 'ffi-napi')
+    const refMain = path.join(basePath, 'ref-napi')
     ffi = require(ffiMain)
     ref = require(refMain)
+
+    logger.info(`✅ ffi-napi loaded successfully (ABI forced)`)
+    logger.info(`ffi-napi path resolved to: ${ffiMain}`)
+    logger.info(`ref-napi path resolved to: ${refMain}`)
 
     logger.info('ffi-napi and ref-napi loaded successfully.')
     logger.info(`ffi-napi path resolved to: ${ffiMain}`)
