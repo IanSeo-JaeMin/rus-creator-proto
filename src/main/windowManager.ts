@@ -2,7 +2,7 @@ import type { ChildProcess } from 'child_process'
 import { logger } from './logger'
 import path from 'path'
 import { app } from 'electron'
-import { execSync } from 'child_process'
+import { spawnSync } from 'child_process'
 import { existsSync } from 'fs'
 
 // Define a common interface for the manager for type safety
@@ -94,23 +94,36 @@ if (process.platform !== 'win32') {
       logger.info(`Executing helper: ${helperPath} ${fullArgs.join(' ')}`)
 
       try {
-        const result = execSync(`"${helperPath}" ${fullArgs.map((a) => `"${a}"`).join(' ')}`, {
+        const result = spawnSync(helperPath, fullArgs, {
           encoding: 'utf-8',
           timeout: 60000, // Increase timeout to 60 seconds for slow-starting apps
           stdio: ['pipe', 'pipe', 'pipe']
         })
 
-        // Get both stdout and stderr
-        const stdout = result || ''
-        const fullOutput = stdout
+        if (result.error) {
+          throw result.error
+        }
+
+        // Combine stdout and stderr
+        const stdout = result.stdout || ''
+        const stderr = result.stderr || ''
+        const output = stdout + (stderr ? '\n' + stderr : '')
         
+        // Check exit code
+        if (result.status !== 0) {
+          logger.error(`Helper exited with code ${result.status}`)
+          logger.error(`Output: ${output}`)
+          resolve({ success: false, output: output })
+          return
+        }
+
         // Log all output for debugging
         if (command === 'embed' && viewName) {
           logger.info(`Helper output for ${viewName}:`)
-          logger.info(stdout)
+          logger.info(output)
         }
 
-        const lines = stdout.trim().split('\n')
+        const lines = output.trim().split('\n')
         const lastLine = lines[lines.length - 1]
 
         if (lastLine.startsWith('SUCCESS')) {
@@ -118,18 +131,18 @@ if (process.platform !== 'win32') {
           if (parts.length > 1) {
             const hwnd = parts[1].trim()
             logger.info(`Helper returned success with HWND: ${hwnd}`)
-            resolve({ success: true, output: fullOutput, hwnd: hwnd })
+            resolve({ success: true, output: output, hwnd: hwnd })
           } else {
             logger.info(`Helper returned success without HWND`)
-            resolve({ success: true, output: fullOutput })
+            resolve({ success: true, output: output })
           }
         } else {
           logger.error(`Helper returned failure. Last line: ${lastLine}`)
-          logger.error(`Full output: ${fullOutput}`)
-          resolve({ success: false, output: fullOutput })
+          logger.error(`Full output: ${output}`)
+          resolve({ success: false, output: output })
         }
       } catch (error: any) {
-        const errorOutput = error.stdout?.toString() || error.stderr?.toString() || error.message
+        const errorOutput = error.message || (error.stdout?.toString() || '') + (error.stderr?.toString() || '')
         logger.error(`Helper execution failed: ${errorOutput}`)
         if (command === 'embed' && viewName) {
           logger.error(`Failed to embed window for: ${viewName}`)
