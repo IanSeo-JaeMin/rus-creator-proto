@@ -4,6 +4,7 @@ interface AppConfig {
   downloadPath: string | null
   reconPaths: Record<string, string>
   deformationPaths: Record<string, string>
+  modeling3dPath: string | null
 }
 
 interface ICustomAPI {
@@ -23,6 +24,7 @@ interface ICustomAPI {
   selectFile: () => Promise<{ success: boolean; path: string | null }>
   setReconPath: (args: { submenu: string; path: string }) => Promise<{ success: boolean }>
   setDeformationPath: (args: { submenu: string; path: string }) => Promise<{ success: boolean }>
+  set3dModelingPath: (path: string | null) => Promise<{ success: boolean }>
   resetConfig: () => Promise<{ success: boolean }>
   showItemInFolder: (filePath: string) => Promise<{ success: boolean }>
   cancelDownload: (downloadId: string) => Promise<{ success: boolean; message?: string }>

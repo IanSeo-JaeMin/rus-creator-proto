@@ -11,12 +11,14 @@ interface AppConfig {
   downloadPath: string | null
   reconPaths: Record<string, string>
   deformationPaths: Record<string, string>
+  modeling3dPath: string | null
 }
 
 const defaultConfig: AppConfig = {
   downloadPath: null,
   reconPaths: {},
-  deformationPaths: {}
+  deformationPaths: {},
+  modeling3dPath: null
 }
 
 let appConfig: AppConfig = { ...defaultConfig }
@@ -534,6 +536,12 @@ function createWindow(): void {
 
   ipcMain.handle('app:set-deformation-path', async (_event, { submenu, path }) => {
     appConfig.deformationPaths[submenu] = path
+    saveConfig(appConfig)
+    return { success: true }
+  })
+
+  ipcMain.handle('app:set-3d-modeling-path', async (_event, path: string | null) => {
+    appConfig.modeling3dPath = path
     saveConfig(appConfig)
     return { success: true }
   })

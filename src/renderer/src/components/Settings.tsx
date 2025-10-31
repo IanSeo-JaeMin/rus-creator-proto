@@ -9,6 +9,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose, onConfigChange }) => {
   const [downloadPath, setDownloadPath] = useState<string | null>(null)
   const [reconPaths, setReconPaths] = useState<Record<string, string>>({})
   const [deformationPaths, setDeformationPaths] = useState<Record<string, string>>({})
+  const [modeling3dPath, setModeling3dPath] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -21,6 +22,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose, onConfigChange }) => {
       setDownloadPath(config.downloadPath)
       setReconPaths(config.reconPaths || {})
       setDeformationPaths(config.deformationPaths || {})
+      setModeling3dPath(config.modeling3dPath || null)
     } catch (error) {
       // Silent error
     } finally {
@@ -99,12 +101,36 @@ const Settings: React.FC<SettingsProps> = ({ onClose, onConfigChange }) => {
     }
   }
 
+  const handleSelect3dModelingPath = async (): Promise<void> => {
+    try {
+      const result = await window.api.selectFile()
+      if (result.success && result.path) {
+        await window.api.set3dModelingPath(result.path)
+        setModeling3dPath(result.path)
+        onConfigChange?.()
+      }
+    } catch (error) {
+      // Silent error
+    }
+  }
+
+  const handleReset3dModelingPath = async (): Promise<void> => {
+    try {
+      await window.api.set3dModelingPath(null)
+      setModeling3dPath(null)
+      onConfigChange?.()
+    } catch (error) {
+      // Silent error
+    }
+  }
+
   const handleResetAll = async (): Promise<void> => {
     try {
       await window.api.resetConfig()
       setDownloadPath(null)
       setReconPaths({})
       setDeformationPaths({})
+      setModeling3dPath(null)
       onConfigChange?.()
     } catch (error) {
       // Silent error
@@ -269,6 +295,27 @@ const Settings: React.FC<SettingsProps> = ({ onClose, onConfigChange }) => {
             </div>
           )
         })}
+      </div>
+
+      {/* 3D Modeling Section */}
+      <div style={sectionStyle}>
+        <div style={sectionTitleStyle}>3D Modeling 실행파일 경로</div>
+        <div style={itemStyle}>
+          <div style={itemTitleStyle}>3D Modeling</div>
+          <div style={pathStyle}>
+            {modeling3dPath || '경로가 설정되지 않았습니다'}
+          </div>
+          <div>
+            <button onClick={handleSelect3dModelingPath} style={buttonPrimaryStyle}>
+              경로 선택
+            </button>
+            {modeling3dPath && (
+              <button onClick={handleReset3dModelingPath} style={buttonStyle}>
+                경로 제거
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Reset All */}

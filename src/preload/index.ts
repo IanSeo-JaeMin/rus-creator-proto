@@ -18,6 +18,8 @@ const api = {
     ipcRenderer.invoke('app:set-recon-path', args),
   setDeformationPath: (args: { submenu: string; path: string }) =>
     ipcRenderer.invoke('app:set-deformation-path', args),
+  set3dModelingPath: (path: string | null) =>
+    ipcRenderer.invoke('app:set-3d-modeling-path', path),
   resetConfig: () => ipcRenderer.invoke('app:reset-config'),
   showItemInFolder: (filePath: string) => ipcRenderer.invoke('app:show-item-in-folder', filePath),
   cancelDownload: (downloadId: string) => ipcRenderer.invoke('app:cancel-download', downloadId),

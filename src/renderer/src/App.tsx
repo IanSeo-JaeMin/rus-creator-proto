@@ -15,11 +15,6 @@ const viewUrls: Record<string, string> = {
   'Dicom Editor': 'http://192.168.16.21:5470'
 }
 
-// Placeholder paths for native applications
-const nativeAppPaths: Record<string, string> = {
-  '3D Modeling': 'C:\\Program Files\\Blender Foundation\\Blender 3.0\\blender.exe'
-}
-
 // Executable paths for RECON submenus
 interface SubmenuExecutable {
   exists: boolean
@@ -47,6 +42,7 @@ function App(): React.ReactElement {
   const [deformationSubmenuStatus, setDeformationSubmenuStatus] = useState<
     Record<string, SubmenuExecutable>
   >({})
+  const [modeling3dPath, setModeling3dPath] = useState<string | null>(null)
   const [downloadStatus, setDownloadStatus] = useState<DownloadStatus | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -60,6 +56,21 @@ function App(): React.ReactElement {
     // Reload executable status when config changes
     checkReconSubmenus()
     checkDeformationSubmenus()
+    loadConfig()
+  }
+
+  // Load config on mount
+  useEffect(() => {
+    loadConfig()
+  }, [])
+
+  const loadConfig = async (): Promise<void> => {
+    try {
+      const config = await window.api.getConfig()
+      setModeling3dPath(config.modeling3dPath || null)
+    } catch (error) {
+      // Silent error
+    }
   }
 
   // Check executable files for RECON submenus
@@ -205,9 +216,17 @@ function App(): React.ReactElement {
         return
       }
 
-      // Check if it's a native app path
-      const appPath = nativeAppPaths[activeView]
-      if (appPath) {
+      // Check if it's 3D Modeling (requires configured path)
+      if (activeView === '3D Modeling') {
+        const appPath = modeling3dPath
+        if (!appPath) {
+          // No path configured - show message and stop loading
+          setTimeout(() => {
+            setIsLoading(false)
+          }, 100)
+          return
+        }
+
         // Small delay to ensure windows are hidden before embedding new one
         setTimeout(() => {
           window.api
@@ -483,12 +502,25 @@ function App(): React.ReactElement {
       )
     }
 
+    // Check if it's 3D Modeling that doesn't have a configured path
+    if (activeView === '3D Modeling' && !modeling3dPath) {
+      return (
+        <div style={{ width: '100%', height: '100%', padding: '20px' }}>
+          <h1>3D Modeling</h1>
+          <p>이 메뉴는 아직 실행 파일 경로가 설정되지 않았습니다.</p>
+          <p style={{ fontSize: '14px', color: '#666' }}>
+            Settings에서 3D Modeling 실행 파일 경로를 설정해주세요.
+          </p>
+        </div>
+      )
+    }
+
     // For native apps, render an empty container. The main process will embed the window.
     // The embedded window will be shown by the main process, so we just need an empty container.
     if (
       reconSubmenuStatus[activeView]?.exists ||
       deformationSubmenuStatus[activeView]?.exists ||
-      nativeAppPaths[activeView]
+      (activeView === '3D Modeling' && modeling3dPath)
     ) {
       return (
         <div
