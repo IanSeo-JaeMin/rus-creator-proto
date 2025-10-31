@@ -80,7 +80,8 @@ if (process.platform !== 'win32') {
   // Execute helper EXE and return output
   function executeHelper(
     command: string,
-    args: string[]
+    args: string[],
+    viewName?: string
   ): Promise<{ success: boolean; output: string; hwnd?: string }> {
     return new Promise((resolve) => {
       const helperPath = getHelperPath()
@@ -93,34 +94,54 @@ if (process.platform !== 'win32') {
       logger.info(`Executing helper: ${helperPath} ${fullArgs.join(' ')}`)
 
       try {
-        const output = execSync(`"${helperPath}" ${fullArgs.map((a) => `"${a}"`).join(' ')}`, {
+        const result = execSync(`"${helperPath}" ${fullArgs.map((a) => `"${a}"`).join(' ')}`, {
           encoding: 'utf-8',
-          timeout: 30000,
+          timeout: 60000, // Increase timeout to 60 seconds for slow-starting apps
           stdio: ['pipe', 'pipe', 'pipe']
         })
 
-        const lines = output.trim().split('\n')
+        // Get both stdout and stderr
+        const stdout = result || ''
+        const fullOutput = stdout
+        
+        // Log all output for debugging
+        if (command === 'embed' && viewName) {
+          logger.info(`Helper output for ${viewName}:`)
+          logger.info(stdout)
+        }
+
+        const lines = stdout.trim().split('\n')
         const lastLine = lines[lines.length - 1]
 
         if (lastLine.startsWith('SUCCESS')) {
           const parts = lastLine.split(':')
           if (parts.length > 1) {
-            resolve({ success: true, output: output, hwnd: parts[1] })
+            const hwnd = parts[1].trim()
+            logger.info(`Helper returned success with HWND: ${hwnd}`)
+            resolve({ success: true, output: fullOutput, hwnd: hwnd })
           } else {
-            resolve({ success: true, output: output })
+            logger.info(`Helper returned success without HWND`)
+            resolve({ success: true, output: fullOutput })
           }
         } else {
-          resolve({ success: false, output: output })
+          logger.error(`Helper returned failure. Last line: ${lastLine}`)
+          logger.error(`Full output: ${fullOutput}`)
+          resolve({ success: false, output: fullOutput })
         }
       } catch (error: any) {
         const errorOutput = error.stdout?.toString() || error.stderr?.toString() || error.message
         logger.error(`Helper execution failed: ${errorOutput}`)
+        if (command === 'embed' && viewName) {
+          logger.error(`Failed to embed window for: ${viewName}`)
+        }
+        logger.error(`Error details:`, error)
         resolve({ success: false, output: errorOutput })
       }
     })
   }
 
   // Window title search patterns for different views
+  // Note: Search terms are matched case-insensitively
   const windowTitlePatterns: Record<string, string[]> = {
     Stomach: ['Stomach', 'Service', 'Batch'],
     Kidney: ['Kidney', 'Service', 'Batch'],
@@ -128,7 +149,7 @@ if (process.platform !== 'win32') {
     Liver: ['Liver', 'Service', 'Batch'],
     Colon: ['Colon', 'Service', 'Batch'],
     Recon: ['Recon', 'Application'],
-    '3D Modeling': ['Blender'],
+    '3D Modeling': ['Blender'], // Blender may have various titles like "Blender", "blender", etc.
     Pneumo: ['Pneumo', 'App'],
     'Pneumo Editor': ['Pneumo', 'Editor'],
     'hu3D Maker': ['hu3D', 'Maker']
@@ -192,15 +213,23 @@ if (process.platform !== 'win32') {
       // Get parent HWND as integer
       const parentHwndInt = parentHwnd.readInt32LE(0)
 
+      logger.info(`Search terms for ${viewName}: ${searchTerms.join(', ')}`)
+      
       // Execute helper with embed command
       const result = await executeHelper('embed', [
         parentHwndInt.toString(),
         appPath,
         ...searchTerms
-      ])
+      ], viewName)
 
       if (!result.success) {
-        logger.error(`Failed to embed window for ${viewName}: ${result.output}`)
+        logger.error(`Failed to embed window for ${viewName}`)
+        logger.error(`Helper output: ${result.output}`)
+        logger.error(`Search terms used: ${searchTerms.join(', ')}`)
+        logger.error(`This might mean:`)
+        logger.error(`  1. The application window title doesn't match the search terms`)
+        logger.error(`  2. The application took too long to start (>60 seconds)`)
+        logger.error(`  3. The application window is not visible`)
         return
       }
 
@@ -209,6 +238,8 @@ if (process.platform !== 'win32') {
 
       if (!childHwnd) {
         logger.error(`Failed to get child HWND for ${viewName}`)
+        logger.error(`Helper output: ${result.output}`)
+        logger.error(`The helper succeeded but didn't return an HWND. This might be a helper bug.`)
         return
       }
 
@@ -239,7 +270,7 @@ if (process.platform !== 'win32') {
     // Hide other windows
     for (const [key, win] of embeddedWindows.entries()) {
       if (win.hwnd && key !== viewName) {
-        await executeHelper('hide', [win.hwnd])
+        await executeHelper('hide', [win.hwnd], key)
       }
     }
 
