@@ -117,17 +117,38 @@ if (process.platform !== 'win32') {
           return
         }
 
-        // Log all output for debugging
-        if (command === 'embed' && viewName) {
-          logger.info(`Helper output for ${viewName}:`)
-          logger.info(output)
+        // Log all output for debugging (always log, don't skip empty output)
+        if ((command === 'embed' || command === 'show') && viewName) {
+          logger.info(`Helper output for ${viewName} (${command}):`)
+          if (output && output.trim().length > 0) {
+            // Split output into lines and log each line separately for better visibility
+            const outputLines = output.split('\n')
+            outputLines.forEach((line, idx) => {
+              const trimmed = line.trim()
+              if (trimmed.length > 0) {
+                logger.info(`  [${idx}] ${trimmed}`)
+              }
+            })
+          } else {
+            logger.warn(`  No output from helper command`)
+          }
         }
 
-        const lines = output.trim().split('\n')
-        const lastLine = lines[lines.length - 1]
+        // Look for SUCCESS line in output (may not be the last line due to stderr mixing)
+        const lines = output.split('\n')
+        let successLine: string | null = null
+        
+        // Search from the end backwards to find the last SUCCESS line
+        for (let i = lines.length - 1; i >= 0; i--) {
+          const line = lines[i].trim()
+          if (line.startsWith('SUCCESS')) {
+            successLine = line
+            break
+          }
+        }
 
-        if (lastLine.startsWith('SUCCESS')) {
-          const parts = lastLine.split(':')
+        if (successLine) {
+          const parts = successLine.split(':')
           if (parts.length > 1) {
             const hwnd = parts[1].trim()
             const pid = parts.length > 2 ? parts[2].trim() : undefined
@@ -138,6 +159,7 @@ if (process.platform !== 'win32') {
             resolve({ success: true, output: output })
           }
         } else {
+          const lastLine = lines[lines.length - 1]?.trim() || ''
           logger.error(`Helper returned failure. Last line: ${lastLine}`)
           logger.error(`Full output: ${output}`)
           resolve({ success: false, output: output })
@@ -158,7 +180,7 @@ if (process.platform !== 'win32') {
   // Note: Search terms are matched case-insensitively
   const windowTitlePatterns: Record<string, string[]> = {
     Stomach: ['Stomach', 'Service', 'Batch'],
-    Kidney: ['Kidney', 'Service', 'Batch'],
+    Kidney: ['Untitled', 'Notepad'], // TEMPORARY: Testing with Notepad instead of Kidney
     Lung: ['Lung', 'Service', 'Batch'],
     Liver: ['Liver', 'Service', 'Batch'],
     Colon: ['Colon', 'Service', 'Batch'],
@@ -166,11 +188,13 @@ if (process.platform !== 'win32') {
     '3D Modeling': ['Blender'], // Blender may have various titles like "Blender", "blender", etc.
     Pneumo: ['Pneumo', 'App'],
     'Pneumo Editor': ['Pneumo', 'Editor'],
-    'hu3D Maker': ['hu3D', 'Maker']
+    'hu3D Maker': ['hu3D', 'Maker'],
+    Notepad: ['Untitled', 'Notepad'] // For direct Notepad testing
   }
 
   // Module State
   let latestBounds = { x: 0, y: 0, width: 800, height: 600 }
+  let currentParentHwnd: Buffer | null = null
   const embeddedWindows = new Map<
     string,
     { process: ChildProcess | null; hwnd: string | null; pid: string | undefined; helperAvailable: boolean }
@@ -226,6 +250,9 @@ if (process.platform !== 'win32') {
 
       // Get parent HWND as integer
       const parentHwndInt = parentHwnd.readInt32LE(0)
+      
+      // Store parent HWND for later use in show command
+      currentParentHwnd = parentHwnd
 
       logger.info(`Search terms for ${viewName}: ${searchTerms.join(', ')}`)
       
@@ -282,24 +309,44 @@ if (process.platform !== 'win32') {
       return
     }
 
-    // Hide other windows
+    // Hide other embedded windows
     for (const [key, win] of embeddedWindows.entries()) {
       if (win.hwnd && key !== viewName) {
         await executeHelper('hide', [win.hwnd], key)
       }
     }
 
-    // Show target window
+    // IMPORTANT: Ensure BrowserViews are hidden before showing embedded window
+    // BrowserViews can block embedded windows even if hidden
+    try {
+      const { ipcMain } = await import('electron')
+      // Note: We can't directly access browserViewManager here, but we can rely on renderer
+      // The renderer should have already hidden BrowserViews, but add a small delay to ensure
+      await new Promise(resolve => setTimeout(resolve, 200))
+      logger.debug('Waited for BrowserViews to be fully hidden')
+    } catch (error) {
+      logger.warn('Error ensuring BrowserViews are hidden:', error)
+    }
+
+    // Get parent HWND for show command
+    const parentHwndInt = currentParentHwnd ? currentParentHwnd.readInt32LE(0) : 0
+    
+    // Show target window with parent HWND
     const result = await executeHelper('show', [
       target.hwnd,
+      parentHwndInt.toString(),
       latestBounds.x.toString(),
       latestBounds.y.toString(),
       latestBounds.width.toString(),
       latestBounds.height.toString()
-    ])
+    ], viewName)
 
     if (result.success) {
       logger.info(`Window shown successfully for ${viewName}`)
+      // Log detailed output for debugging visibility issues
+      if (result.output) {
+        logger.debug(`Show command output for ${viewName}: ${result.output}`)
+      }
     } else {
       logger.error(`Failed to show window for ${viewName}: ${result.output}`)
     }

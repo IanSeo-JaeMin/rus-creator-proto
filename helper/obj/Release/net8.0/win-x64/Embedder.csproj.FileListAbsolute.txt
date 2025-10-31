@@ -8,7 +8,6 @@ C:\Users\hutom\Desktop\platform\rus-creator-proto\resources\helper\net8.0\win-x6
 C:\Users\hutom\Desktop\platform\rus-creator-proto\resources\helper\net8.0\win-x64\Embedder.runtimeconfig.json
 C:\Users\hutom\Desktop\platform\rus-creator-proto\resources\helper\net8.0\win-x64\Embedder.dll
 C:\Users\hutom\Desktop\platform\rus-creator-proto\resources\helper\net8.0\win-x64\Embedder.pdb
-C:\Users\hutom\Desktop\platform\rus-creator-proto\helper\obj\Release\net8.0\win-x64\Embedder.csproj.Up2Date
 C:\Users\hutom\Desktop\platform\rus-creator-proto\helper\obj\Release\net8.0\win-x64\Embedder.dll
 C:\Users\hutom\Desktop\platform\rus-creator-proto\helper\obj\Release\net8.0\win-x64\refint\Embedder.dll
 C:\Users\hutom\Desktop\platform\rus-creator-proto\helper\obj\Release\net8.0\win-x64\Embedder.pdb
@@ -201,3 +200,4 @@ C:\Users\hutom\Desktop\platform\rus-creator-proto\helper\bin\Release\net8.0\win-
 C:\Users\hutom\Desktop\platform\rus-creator-proto\helper\bin\Release\net8.0\win-x64\mscordbi.dll
 C:\Users\hutom\Desktop\platform\rus-creator-proto\helper\bin\Release\net8.0\win-x64\mscorrc.dll
 C:\Users\hutom\Desktop\platform\rus-creator-proto\helper\bin\Release\net8.0\win-x64\msquic.dll
+C:\Users\hutom\Desktop\platform\rus-creator-proto\helper\obj\Release\net8.0\win-x64\Embedder.csproj.Up2Date

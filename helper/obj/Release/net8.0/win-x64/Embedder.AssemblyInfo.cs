@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Embedder")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5db4688b63e18da0096ff1596b578e85c99ba107")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8c6a63210d0a5d0a43bc86eab8a8606aeb873eb9")]
 [assembly: System.Reflection.AssemblyProductAttribute("Embedder")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Embedder")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

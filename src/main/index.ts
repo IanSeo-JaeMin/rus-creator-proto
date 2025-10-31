@@ -182,10 +182,10 @@ function createWindow(): void {
   // Set main window for BrowserView manager
   browserViewManager.setMainWindow(mainWindow)
 
-  // Enable DevTools for debugging (always enabled for now)
-  if (!is.dev) {
+  // Enable DevTools for debugging in development mode
+  if (is.dev) {
     mainWindow.webContents.openDevTools()
-    logger.info('DevTools opened (production mode)')
+    logger.info('DevTools opened (development mode)')
   }
 
   mainWindow.on('ready-to-show', () => {

@@ -177,7 +177,8 @@ function App(): React.ReactElement {
 
       // Check if it's a RECON submenu
       if (reconSubmenuStatus[activeView]?.exists && reconSubmenuStatus[activeView].path) {
-        const appPath = reconSubmenuStatus[activeView].path!
+        // TEMPORARY: Use Notepad for Kidney to test embedding
+        const appPath = activeView === 'Kidney' ? 'C:\\Windows\\System32\\notepad.exe' : reconSubmenuStatus[activeView].path!
 
         // Hide all BrowserViews before embedding native window
         const hideBrowserViews = async () => {
@@ -190,18 +191,19 @@ function App(): React.ReactElement {
 
         // Hide BrowserViews first, then embed
         hideBrowserViews().then(() => {
-          // Small delay to ensure BrowserViews are hidden and windows are hidden before embedding new one
+          // Longer delay to ensure BrowserViews are fully removed before embedding
+          // BrowserView removal needs time to complete in Electron
           setTimeout(() => {
             window.api
               .embedWindow({ viewName: activeView, appPath })
               .then((_result) => {
-                // Stop loading after embed completes (give it a moment to show)
-                setTimeout(() => setIsLoading(false), 300)
+                // Stop loading after embed completes (give it more time for BrowserView cleanup)
+                setTimeout(() => setIsLoading(false), 500)
               })
               .catch((_error) => {
                 setIsLoading(false)
               })
-          }, 100)
+          }, 300)
         })
         return
       }
@@ -224,18 +226,18 @@ function App(): React.ReactElement {
 
         // Hide BrowserViews first, then embed
         hideBrowserViews().then(() => {
-          // Small delay to ensure BrowserViews are hidden and windows are hidden before embedding new one
+          // Longer delay to ensure BrowserViews are fully removed before embedding
           setTimeout(() => {
             window.api
               .embedWindow({ viewName: activeView, appPath })
               .then((_result) => {
                 // Stop loading after embed completes
-                setTimeout(() => setIsLoading(false), 300)
+                setTimeout(() => setIsLoading(false), 500)
               })
               .catch((_error) => {
                 setIsLoading(false)
               })
-          }, 100)
+          }, 300)
         })
         return
       }
@@ -256,7 +258,7 @@ function App(): React.ReactElement {
           hideBrowserViews().then(() => {
             setTimeout(() => {
               setIsLoading(false)
-            }, 100)
+            }, 200)
           })
           return
         }
@@ -272,18 +274,18 @@ function App(): React.ReactElement {
 
         // Hide BrowserViews first, then embed
         hideBrowserViews().then(() => {
-          // Small delay to ensure BrowserViews are hidden and windows are hidden before embedding new one
+          // Longer delay to ensure BrowserViews are fully removed before embedding
           setTimeout(() => {
             window.api
               .embedWindow({ viewName: activeView, appPath })
               .then((_result) => {
                 // Stop loading after embed completes
-                setTimeout(() => setIsLoading(false), 300)
+                setTimeout(() => setIsLoading(false), 500)
               })
               .catch((_error) => {
                 setIsLoading(false)
               })
-          }, 100)
+          }, 300)
         })
         return
       }
