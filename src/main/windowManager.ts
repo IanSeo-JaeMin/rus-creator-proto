@@ -244,11 +244,11 @@ if (process.platform !== 'win32') {
   }
 
   async function hideAllWindows(): Promise<void> {
-    logger.info('Hiding all embedded windows...')
+    logger.debug('Hiding all embedded windows...')
     for (const [viewName, win] of embeddedWindows.entries()) {
       if (win.hwnd) {
         await executeHelper('hide', [win.hwnd])
-        logger.info(`Hidden window for ${viewName}`)
+        logger.debug(`Hidden window for ${viewName}`)
       }
     }
   }

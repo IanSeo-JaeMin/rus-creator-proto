@@ -195,7 +195,7 @@ function createWindow(): void {
   })
 
   mainWindow.on('show', () => {
-    logger.info('Window show event fired')
+    logger.debug('Window show event fired')
   })
 
   mainWindow.on('closed', () => {
@@ -329,8 +329,11 @@ function createWindow(): void {
       // Bring Electron window to front to ensure menu is clickable
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.focus()
-        mainWindow.show()
-        logger.info('Electron window brought to front')
+        // Only show if not already visible to avoid unnecessary events
+        if (!mainWindow.isVisible()) {
+          mainWindow.show()
+        }
+        logger.debug('Electron window brought to front')
       }
       
       return { success: true, message: 'All embedded windows hidden.' }
