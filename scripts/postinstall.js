@@ -62,7 +62,10 @@ if (platform() === 'win32') {
   console.log(`[postinstall] Windows detected → rebuilding native modules...\n`)
 
   try {
-    const rebuildCmd = `npx electron-rebuild -f -w ffi-napi,ref-napi,ref-struct-napi --version ${ELECTRON_VERSION} --arch x64`
+    // const rebuildCmd = `npx electron-rebuild -f -w ffi-napi,ref-napi,ref-struct-napi --version ${ELECTRON_VERSION} --arch x64`
+    const abiVersion = execSync('npx electron --abi').toString().trim()
+    const rebuildCmd = `npx electron-rebuild -f -w ffi-napi,ref-napi,ref-struct-napi --version ${ELECTRON_VERSION} --arch x64 --force-abi ${abiVersion}`
+
     console.log(`[postinstall] Running: ${rebuildCmd}\n`)
     execSync(rebuildCmd, { stdio: 'inherit' })
     console.log(`\n✅ Native modules rebuilt successfully for Electron ${ELECTRON_VERSION}\n`)
