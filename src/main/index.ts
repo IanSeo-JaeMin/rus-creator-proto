@@ -314,6 +314,24 @@ function createWindow(): void {
     windowManager.updateBounds(bounds)
   })
 
+  ipcMain.handle('app:hide-all-windows', async () => {
+    try {
+      await windowManager.hideAllWindows()
+      
+      // Bring Electron window to front to ensure menu is clickable
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.focus()
+        mainWindow.show()
+        logger.info('Electron window brought to front')
+      }
+      
+      return { success: true, message: 'All embedded windows hidden.' }
+    } catch (error) {
+      logger.error('Failed to hide all windows:', error)
+      return { success: false, message: `Failed to hide all windows: ${error}` }
+    }
+  })
+
   ipcMain.handle('app:embed-window', async (_event, { viewName, appPath }) => {
     try {
       logger.info(`IPC: embed-window request for ${viewName}, path: ${appPath}`)
@@ -331,7 +349,7 @@ function createWindow(): void {
         logger.info(`windowManager.embedWindow type: ${typeof windowManager.embedWindow}`)
         
         try {
-          windowManager.embedWindow(viewName, appPath, parentHwnd)
+          await windowManager.embedWindow(viewName, appPath, parentHwnd)
           logger.info(`windowManager.embedWindow call completed for ${viewName}`)
         } catch (error) {
           logger.error(`Error calling windowManager.embedWindow:`, error)

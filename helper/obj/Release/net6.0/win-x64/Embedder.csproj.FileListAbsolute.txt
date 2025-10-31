@@ -1,0 +1,5 @@
+C:\Users\hutom\Desktop\platform\rus-creator-proto\helper\obj\Release\net6.0\win-x64\Embedder.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\hutom\Desktop\platform\rus-creator-proto\helper\obj\Release\net6.0\win-x64\Embedder.AssemblyInfoInputs.cache
+C:\Users\hutom\Desktop\platform\rus-creator-proto\helper\obj\Release\net6.0\win-x64\Embedder.AssemblyInfo.cs
+C:\Users\hutom\Desktop\platform\rus-creator-proto\helper\obj\Release\net6.0\win-x64\Embedder.csproj.CoreCompileInputs.cache
+C:\Users\hutom\Desktop\platform\rus-creator-proto\helper\obj\Release\net6.0\win-x64\Embedder.sourcelink.json

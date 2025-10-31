@@ -14,12 +14,11 @@
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
     "build": "npm run typecheck && electron-vite build",
+    "build:helper": "node scripts/build-helper.js",
     "postinstall": "node scripts/postinstall.js",
     "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && node scripts/postinstall.js && electron-builder --win",
-    "build:win:local": "npm run build && npm run rebuild:win && electron-builder --win",
-    "rebuild:win": "node scripts/rebuild-win.js",
-    "build:mac": "rm -rf node_modules/ffi-napi node_modules/ref-napi node_modules/ref-struct-napi && electron-vite build && electron-builder --mac",
+    "build:win": "npm run build:helper && npm run build && electron-builder --win",
+    "build:mac": "npm run build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
     "build:icon": "scripts/icon-build.sh"
   },
@@ -29,13 +28,7 @@
     "asar": true,
     "npmRebuild": true,
     "asarUnpack": [
-      "**/*.node",
-      "node_modules/ffi-napi/**",
-      "node_modules/ref-napi/**",
-      "node_modules/ref-struct-napi/**",
-      "node_modules/debug/**",
-      "node_modules/ms/**",
-      "node_modules/node-gyp-build/**"
+      "resources/**"
     ],
     "files": [
       "out"
@@ -80,17 +73,12 @@
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "debug": "^4.3.4",
-    "ffi-napi": "^4.0.3",
-    "ms": "^2.1.3",
-    "node-gyp-build": "^4.8.0",
-    "ref-napi": "^3.0.3",
-    "ref-struct-napi": "^1.1.1"
+    "ms": "^2.1.3"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
     "@electron-toolkit/eslint-config-ts": "^3.1.0",
     "@electron-toolkit/tsconfig": "^2.0.0",
-    "@electron/rebuild": "3.5.0",
     "@types/node": "^18.19.39",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
@@ -115,10 +103,6 @@
     "onlyBuiltDependencies": [
       "electron",
       "esbuild"
-    ],
-    "ignoredBuiltDependencies": [
-      "ffi-napi",
-      "ref-napi"
     ]
   }
 }

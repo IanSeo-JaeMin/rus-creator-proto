@@ -12,6 +12,7 @@ interface ICustomAPI {
     appPath: string
   }) => Promise<{ success: boolean; message: string }>
   updateGeometry: (bounds: { x: number; y: number; width: number; height: number }) => void
+  hideAllWindows: () => Promise<{ success: boolean; message: string }>
   checkExecutable: (args: {
     category: string
     submenu: string

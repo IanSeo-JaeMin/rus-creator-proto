@@ -7,6 +7,7 @@ const api = {
     ipcRenderer.invoke('app:embed-window', args),
   updateGeometry: (bounds: { x: number; y: number; width: number; height: number }) =>
     ipcRenderer.send('app:update-geometry', bounds),
+  hideAllWindows: () => ipcRenderer.invoke('app:hide-all-windows'),
   checkExecutable: (args: { category: string; submenu: string }) =>
     ipcRenderer.invoke('app:check-executable', args),
   getConfig: () => ipcRenderer.invoke('app:get-config'),
