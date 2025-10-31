@@ -31,7 +31,8 @@
       "resources/**"
     ],
     "files": [
-      "out"
+      "out",
+      "resources/**"
     ],
     "directories": {
       "output": "dist"
