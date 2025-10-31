@@ -274,14 +274,41 @@ if (process.platform !== 'win32') {
     for (const [viewName, win] of embeddedWindows.entries()) {
       if (win.process && !win.process.killed) {
         try {
-          win.process.kill()
-          logger.info(`Killed process for ${viewName}`)
+          // Try to terminate the process
+          if (process.platform === 'win32') {
+            // On Windows, kill the process directly
+            win.process.kill()
+          } else {
+            // On other platforms, use SIGTERM first
+            win.process.kill('SIGTERM')
+          }
+          logger.info(`Terminated process for ${viewName}`)
         } catch (error) {
-          logger.error(`Failed to kill process for ${viewName}:`, error)
+          logger.error(`Failed to terminate process for ${viewName}:`, error)
+          // Try force kill as last resort
+          try {
+            if (win.process && !win.process.killed) {
+              if (process.platform === 'win32') {
+                win.process.kill()
+              } else {
+                win.process.kill('SIGKILL')
+              }
+              logger.info(`Force killed process for ${viewName}`)
+            }
+          } catch (forceError) {
+            logger.error(`Failed to force kill process for ${viewName}:`, forceError)
+          }
         }
+      }
+      // Also try to hide the window using helper if available
+      if (win.hwnd && helperAvailable) {
+        executeHelper('hide', [win.hwnd]).catch(() => {
+          // Silent error - process is being terminated anyway
+        })
       }
     }
     embeddedWindows.clear()
+    logger.info('Cleanup completed')
   }
 
   // Assign the real implementation to the manager

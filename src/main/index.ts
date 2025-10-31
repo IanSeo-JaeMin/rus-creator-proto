@@ -677,15 +677,35 @@ app.whenReady().then(() => {
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
+// Cleanup embedded windows before quit
+app.on('before-quit', () => {
+  logger.info('Application quitting, cleaning up embedded windows...')
+  windowManager.cleanup()
+  browserViewManager.cleanup()
+})
+
+// Cleanup on will-quit as well (more reliable)
+app.on('will-quit', () => {
+  logger.info('Application will quit, ensuring cleanup...')
+  windowManager.cleanup()
+  browserViewManager.cleanup()
+})
+
+// Cleanup when all windows are closed
 app.on('window-all-closed', () => {
   if (process.platform === 'win32') {
     windowManager.cleanup()
+    browserViewManager.cleanup()
   }
-  browserViewManager.cleanup()
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+// Cleanup on process exit (last resort)
+process.on('exit', () => {
+  logger.info('Process exiting, final cleanup...')
+  windowManager.cleanup()
 })
 
 // In this file you can include the rest of your app's specific main process

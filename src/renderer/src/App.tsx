@@ -179,18 +179,30 @@ function App(): React.ReactElement {
       if (reconSubmenuStatus[activeView]?.exists && reconSubmenuStatus[activeView].path) {
         const appPath = reconSubmenuStatus[activeView].path!
 
-        // Small delay to ensure windows are hidden before embedding new one
-        setTimeout(() => {
-          window.api
-            .embedWindow({ viewName: activeView, appPath })
-            .then((_result) => {
-              // Stop loading after embed completes (give it a moment to show)
-              setTimeout(() => setIsLoading(false), 300)
+        // Hide all BrowserViews before embedding native window
+        const hideBrowserViews = async () => {
+          for (const viewName of Object.keys(viewUrls)) {
+            await window.api.hideBrowserView({ viewName }).catch(() => {
+              // Silent error
             })
-            .catch((_error) => {
-              setIsLoading(false)
-            })
-        }, 100)
+          }
+        }
+
+        // Hide BrowserViews first, then embed
+        hideBrowserViews().then(() => {
+          // Small delay to ensure BrowserViews are hidden and windows are hidden before embedding new one
+          setTimeout(() => {
+            window.api
+              .embedWindow({ viewName: activeView, appPath })
+              .then((_result) => {
+                // Stop loading after embed completes (give it a moment to show)
+                setTimeout(() => setIsLoading(false), 300)
+              })
+              .catch((_error) => {
+                setIsLoading(false)
+              })
+          }, 100)
+        })
         return
       }
 
@@ -201,18 +213,30 @@ function App(): React.ReactElement {
       ) {
         const appPath = deformationSubmenuStatus[activeView].path!
 
-        // Small delay to ensure windows are hidden before embedding new one
-        setTimeout(() => {
-          window.api
-            .embedWindow({ viewName: activeView, appPath })
-            .then((_result) => {
-              // Stop loading after embed completes
-              setTimeout(() => setIsLoading(false), 300)
+        // Hide all BrowserViews before embedding native window
+        const hideBrowserViews = async () => {
+          for (const viewName of Object.keys(viewUrls)) {
+            await window.api.hideBrowserView({ viewName }).catch(() => {
+              // Silent error
             })
-            .catch((_error) => {
-              setIsLoading(false)
-            })
-        }, 100)
+          }
+        }
+
+        // Hide BrowserViews first, then embed
+        hideBrowserViews().then(() => {
+          // Small delay to ensure BrowserViews are hidden and windows are hidden before embedding new one
+          setTimeout(() => {
+            window.api
+              .embedWindow({ viewName: activeView, appPath })
+              .then((_result) => {
+                // Stop loading after embed completes
+                setTimeout(() => setIsLoading(false), 300)
+              })
+              .catch((_error) => {
+                setIsLoading(false)
+              })
+          }, 100)
+        })
         return
       }
 
@@ -221,24 +245,46 @@ function App(): React.ReactElement {
         const appPath = modeling3dPath
         if (!appPath) {
           // No path configured - show message and stop loading
-          setTimeout(() => {
-            setIsLoading(false)
-          }, 100)
+          // Hide BrowserViews first
+          const hideBrowserViews = async () => {
+            for (const viewName of Object.keys(viewUrls)) {
+              await window.api.hideBrowserView({ viewName }).catch(() => {
+                // Silent error
+              })
+            }
+          }
+          hideBrowserViews().then(() => {
+            setTimeout(() => {
+              setIsLoading(false)
+            }, 100)
+          })
           return
         }
 
-        // Small delay to ensure windows are hidden before embedding new one
-        setTimeout(() => {
-          window.api
-            .embedWindow({ viewName: activeView, appPath })
-            .then((_result) => {
-              // Stop loading after embed completes
-              setTimeout(() => setIsLoading(false), 300)
+        // Hide all BrowserViews before embedding native window
+        const hideBrowserViews = async () => {
+          for (const viewName of Object.keys(viewUrls)) {
+            await window.api.hideBrowserView({ viewName }).catch(() => {
+              // Silent error
             })
-            .catch((_error) => {
-              setIsLoading(false)
-            })
-        }, 100)
+          }
+        }
+
+        // Hide BrowserViews first, then embed
+        hideBrowserViews().then(() => {
+          // Small delay to ensure BrowserViews are hidden and windows are hidden before embedding new one
+          setTimeout(() => {
+            window.api
+              .embedWindow({ viewName: activeView, appPath })
+              .then((_result) => {
+                // Stop loading after embed completes
+                setTimeout(() => setIsLoading(false), 300)
+              })
+              .catch((_error) => {
+                setIsLoading(false)
+              })
+          }, 100)
+        })
         return
       }
 
