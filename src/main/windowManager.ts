@@ -42,8 +42,20 @@ if (process.platform !== 'win32') {
     let helperPath: string
 
     if (isPackaged) {
-      // In packaged app, helper should be in resources/helper
-      helperPath = path.join(process.resourcesPath, 'helper', 'Embedder.exe')
+      // In packaged app, asarUnpacked files are in app.asar.unpacked/resources/helper
+      // process.resourcesPath points to the resources directory
+      const unpackedPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', 'helper', 'Embedder.exe')
+      const directPath = path.join(process.resourcesPath, 'helper', 'Embedder.exe')
+      
+      // Try app.asar.unpacked path first (for asarUnpacked files)
+      if (existsSync(unpackedPath)) {
+        helperPath = unpackedPath
+      } else if (existsSync(directPath)) {
+        // Fallback to direct resources path
+        helperPath = directPath
+      } else {
+        helperPath = unpackedPath // Use for error message
+      }
     } else {
       // In development, check resources/helper first, then build output
       helperPath = path.join(__dirname, '..', '..', 'resources', 'helper', 'Embedder.exe')
@@ -57,6 +69,10 @@ if (process.platform !== 'win32') {
       return helperPath
     } else {
       logger.error(`Helper EXE not found at: ${helperPath}`)
+      // Also log alternative paths for debugging
+      if (isPackaged) {
+        logger.error(`Also checked: ${path.join(process.resourcesPath, 'helper', 'Embedder.exe')}`)
+      }
       return null
     }
   }
