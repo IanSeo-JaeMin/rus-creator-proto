@@ -216,8 +216,9 @@ class Embedder
                 // Ensure window is behind parent (this helps with menu interactions)
                 SetWindowPos(childHwnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_HIDEWINDOW);
 
-                // Output HWND for further operations
-                Console.WriteLine($"SUCCESS:{childHwnd.ToInt64()}");
+                // Output HWND and PID for further operations
+                // Format: SUCCESS:HWND:PID
+                Console.WriteLine($"SUCCESS:{childHwnd.ToInt64()}:{proc.Id}");
 
             }
             else if (command == "show")

@@ -2,7 +2,7 @@ import type { ChildProcess } from 'child_process'
 import { logger } from './logger'
 import path from 'path'
 import { app } from 'electron'
-import { spawnSync } from 'child_process'
+import { spawnSync, execSync } from 'child_process'
 import { existsSync } from 'fs'
 
 // Define a common interface for the manager for type safety
@@ -82,7 +82,7 @@ if (process.platform !== 'win32') {
     command: string,
     args: string[],
     viewName?: string
-  ): Promise<{ success: boolean; output: string; hwnd?: string }> {
+  ): Promise<{ success: boolean; output: string; hwnd?: string; pid?: string }> {
     return new Promise((resolve) => {
       const helperPath = getHelperPath()
       if (!helperPath) {
@@ -130,8 +130,9 @@ if (process.platform !== 'win32') {
           const parts = lastLine.split(':')
           if (parts.length > 1) {
             const hwnd = parts[1].trim()
-            logger.info(`Helper returned success with HWND: ${hwnd}`)
-            resolve({ success: true, output: output, hwnd: hwnd })
+            const pid = parts.length > 2 ? parts[2].trim() : null
+            logger.info(`Helper returned success with HWND: ${hwnd}, PID: ${pid || 'N/A'}`)
+            resolve({ success: true, output: output, hwnd: hwnd, pid: pid })
           } else {
             logger.info(`Helper returned success without HWND`)
             resolve({ success: true, output: output })
@@ -172,7 +173,7 @@ if (process.platform !== 'win32') {
   let latestBounds = { x: 0, y: 0, width: 800, height: 600 }
   const embeddedWindows = new Map<
     string,
-    { process: ChildProcess; hwnd: string | null; helperAvailable: boolean }
+    { process: ChildProcess | null; hwnd: string | null; pid: string | null; helperAvailable: boolean }
   >()
 
   // Check if helper is available
@@ -246,8 +247,9 @@ if (process.platform !== 'win32') {
         return
       }
 
-      // Extract HWND from result
+      // Extract HWND and PID from result
       const childHwnd = result.hwnd || null
+      const pid = result.pid || null
 
       if (!childHwnd) {
         logger.error(`Failed to get child HWND for ${viewName}`)
@@ -256,13 +258,13 @@ if (process.platform !== 'win32') {
         return
       }
 
-      logger.info(`Window embedded successfully for ${viewName}, HWND: ${childHwnd}`)
+      logger.info(`Window embedded successfully for ${viewName}, HWND: ${childHwnd}, PID: ${pid || 'N/A'}`)
 
-      // Store the embedded window info
-      // Note: We don't store the process here since helper spawns it
+      // Store the embedded window info with PID for cleanup
       embeddedWindows.set(viewName, {
-        process: null as any, // Process is managed by helper
+        process: null, // Process is managed by helper, but we have PID
         hwnd: childHwnd,
+        pid: pid,
         helperAvailable: true
       })
 
@@ -316,32 +318,53 @@ if (process.platform !== 'win32') {
   function cleanup(): void {
     logger.info('Cleaning up embedded windows...')
     for (const [viewName, win] of embeddedWindows.entries()) {
-      if (win.process && !win.process.killed) {
+      // Try to kill the process using PID if available
+      if (win.pid && helperAvailable) {
         try {
-          // Try to terminate the process
+          logger.info(`Terminating process for ${viewName} (PID: ${win.pid})`)
+          // Use taskkill on Windows to terminate the process
           if (process.platform === 'win32') {
-            // On Windows, kill the process directly
+            try {
+              // Try graceful termination first
+              execSync(`taskkill /PID ${win.pid} /T`, { stdio: 'ignore', timeout: 2000 })
+              logger.info(`Terminated process ${win.pid} for ${viewName}`)
+            } catch (error: any) {
+              // If graceful termination fails, try force kill
+              try {
+                execSync(`taskkill /F /PID ${win.pid} /T`, { stdio: 'ignore', timeout: 2000 })
+                logger.info(`Force killed process ${win.pid} for ${viewName}`)
+              } catch (forceError) {
+                logger.warn(`Failed to kill process ${win.pid} for ${viewName}:`, forceError)
+              }
+            }
+          } else {
+            // On other platforms, use kill command
+            try {
+              execSync(`kill ${win.pid}`, { stdio: 'ignore', timeout: 2000 })
+              logger.info(`Terminated process ${win.pid} for ${viewName}`)
+            } catch (error: any) {
+              try {
+                execSync(`kill -9 ${win.pid}`, { stdio: 'ignore', timeout: 2000 })
+                logger.info(`Force killed process ${win.pid} for ${viewName}`)
+              } catch (forceError) {
+                logger.warn(`Failed to kill process ${win.pid} for ${viewName}:`, forceError)
+              }
+            }
+          }
+        } catch (error) {
+          logger.error(`Error terminating process ${win.pid} for ${viewName}:`, error)
+        }
+      } else if (win.process && !win.process.killed) {
+        // Fallback to process object if PID is not available
+        try {
+          if (process.platform === 'win32') {
             win.process.kill()
           } else {
-            // On other platforms, use SIGTERM first
             win.process.kill('SIGTERM')
           }
           logger.info(`Terminated process for ${viewName}`)
         } catch (error) {
           logger.error(`Failed to terminate process for ${viewName}:`, error)
-          // Try force kill as last resort
-          try {
-            if (win.process && !win.process.killed) {
-              if (process.platform === 'win32') {
-                win.process.kill()
-              } else {
-                win.process.kill('SIGKILL')
-              }
-              logger.info(`Force killed process for ${viewName}`)
-            }
-          } catch (forceError) {
-            logger.error(`Failed to force kill process for ${viewName}:`, forceError)
-          }
         }
       }
       // Also try to hide the window using helper if available
