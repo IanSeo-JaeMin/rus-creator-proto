@@ -16,7 +16,7 @@
     "build": "npm run typecheck && electron-vite build",
     "postinstall": "node scripts/postinstall.js",
     "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "pnpm install --force && npm run build && node scripts/rebuild-win.js && electron-builder --win",
+    "build:win": "npm run build && node scripts/postinstall.js && electron-builder --win",
     "build:win:local": "npm run build && npm run rebuild:win && electron-builder --win",
     "rebuild:win": "node scripts/rebuild-win.js",
     "build:mac": "rm -rf node_modules/ffi-napi node_modules/ref-napi node_modules/ref-struct-napi && electron-vite build && electron-builder --mac",
@@ -24,68 +24,63 @@
     "build:icon": "scripts/icon-build.sh"
   },
   "build": {
-    "build": {
-      "productName": "RUS Creator",
-      "appId": "io.hutom.rus-creator",
-      "asar": true,
-      "npmRebuild": true,
-      "asarUnpack": [
-        "**/*.node",
-        "node_modules/ffi-napi/**",
-        "node_modules/ref-napi/**",
-        "node_modules/ref-struct-napi/**",
-        "node_modules/debug/**",
-        "node_modules/ms/**",
-        "node_modules/node-gyp-build/**"
-      ],
-      "files": [
-        "out"
-      ],
-      "directories": {
-        "output": "dist"
-      },
-      "win": {
-        "target": [
-          {
-            "target": "nsis",
-            "arch": [
-              "x64"
-            ]
-          }
-        ],
-        "executableName": "rus-creator",
-        "icon": "build/icon.ico",
-        "requestedExecutionLevel": "requireAdministrator"
-      },
-      "mac": {
-        "target": [
-          {
-            "target": "dmg",
-            "arch": [
-              "arm64"
-            ]
-          }
-        ],
-        "icon": "build/icon.icns"
-      },
-      "nsis": {
-        "oneClick": true,
-        "perMachine": true,
-        "allowToChangeInstallationDirectory": false,
-        "installerIcon": "build/hutom_512.ico",
-        "createDesktopShortcut": true,
-        "artifactName": "rus-creator-${version}.${ext}"
-      }
+    "productName": "RUS Creator",
+    "appId": "io.hutom.rus-creator",
+    "asar": true,
+    "npmRebuild": true,
+    "asarUnpack": [
+      "**/*.node",
+      "node_modules/ffi-napi/**",
+      "node_modules/ref-napi/**",
+      "node_modules/ref-struct-napi/**",
+      "node_modules/debug/**",
+      "node_modules/ms/**",
+      "node_modules/node-gyp-build/**"
+    ],
+    "files": [
+      "out"
+    ],
+    "directories": {
+      "output": "dist"
     },
-    "pnpm": {
-      "onlyBuiltDependencies": [
-        "electron",
-        "esbuild"
-      ]
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "executableName": "rus-creator",
+      "icon": "build/icon.ico",
+      "requestedExecutionLevel": "requireAdministrator"
     },
-    "scripts": {
-      "build:win": "npm run build && node scripts/postinstall.js && electron-builder --win"
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "build/icon.icns"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": false,
+      "installerIcon": "build/hutom_512.ico",
+      "createDesktopShortcut": true,
+      "artifactName": "rus-creator-${version}.${ext}"
     }
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild"
+    ]
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
