@@ -1,5 +1,4 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react'
-import Webview from './components/Webview'
 import Settings from './components/Settings'
 
 const menuItems = ['WorkList', 'Dicom Editor', 'Recon', '3D Modeling', 'Deformation', 'Settings']
@@ -72,7 +71,6 @@ function App(): React.ReactElement {
         const result = await window.api.checkExecutable({ category: 'recon', submenu })
         status[submenu] = result
       } catch (error) {
-        console.error(`Failed to check executable for ${submenu}:`, error)
         status[submenu] = { exists: false, path: null }
       }
     }
@@ -128,7 +126,6 @@ function App(): React.ReactElement {
         })
         status[submenu] = result
       } catch (error) {
-        console.error(`Failed to check executable for ${submenu}:`, error)
         status[submenu] = { exists: false, path: null }
       }
     }
@@ -141,89 +138,45 @@ function App(): React.ReactElement {
     checkDeformationSubmenus()
   }, [])
 
-         // Effect for handling native app embedding
-         useEffect(() => {
-           // Log activeView change
-           console.log(`[App] === activeView changed ===`)
-           console.log(`[App] New activeView: ${activeView}`)
-           console.log(`[App] Is WorkList: ${activeView === 'WorkList'}`)
-           console.log(`[App] Is webview: ${!!viewUrls[activeView]}`)
-           
-           // Special logging for WorkList
-           if (activeView === 'WorkList') {
-             console.log(`[WorkList] === activeView changed to WorkList ===`)
-             console.log(`[WorkList] Timestamp: ${new Date().toISOString()}`)
-             console.log(`[WorkList] URL should be: ${viewUrls['WorkList']}`)
-             
-             // Try to get current URL from webview after a delay
-             setTimeout(() => {
-               try {
-                 const workListWebview = document.querySelector('webview[src*="30020"]') as any
-                 if (workListWebview) {
-                   const currentUrl = workListWebview.getURL ? workListWebview.getURL() : 'unknown'
-                   console.log(`[WorkList] === URL check after view change ===`)
-                   console.log(`[WorkList] URL: ${currentUrl}`)
-                 } else {
-                   console.log(`[WorkList] === Webview element not found ===`)
-                 }
-               } catch (e) {
-                 console.error(`[WorkList] Error getting URL:`, e)
-               }
-             }, 500)
-           }
+  // Effect for handling native app embedding
+  useEffect(() => {
+    // Clear any existing timeout
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current)
+      loadingTimeoutRef.current = null
+    }
 
-           // Clear any existing timeout
-           if (loadingTimeoutRef.current) {
-             clearTimeout(loadingTimeoutRef.current)
-             loadingTimeoutRef.current = null
-           }
+    // Always hide all embedded windows first when view changes
+    // This prevents embedded windows from blocking menu interactions
+    const hideWindows = async () => {
+      try {
+        await window.api.hideAllWindows()
+      } catch (error) {
+        // Silent error
+      }
+    }
 
-           // Always hide all embedded windows first when view changes
-           // This prevents embedded windows from blocking menu interactions
-           const hideWindows = async () => {
-             try {
-               const result = await window.api.hideAllWindows()
-               console.log('[App] All embedded windows hidden:', result)
-               
-               // Special logging for WorkList
-               if (activeView === 'WorkList') {
-                 console.log(`[WorkList] === Embedded windows hidden, switching to WorkList ===`)
-               }
-             } catch (error) {
-               console.error('[App] Failed to hide all windows:', error)
-             }
-           }
-
-           // Start loading when view changes
-           setIsLoading(true)
+    // Start loading when view changes
+    setIsLoading(true)
 
     // First, always hide all embedded windows
     hideWindows().then(() => {
       // Check if it's an embedded view (not webview)
       // Only embed if it's a valid embedded view
-      
+
       // Check if it's a RECON submenu
       if (reconSubmenuStatus[activeView]?.exists && reconSubmenuStatus[activeView].path) {
         const appPath = reconSubmenuStatus[activeView].path!
-        console.log(`RECON submenu selected: ${activeView}`)
-        console.log(`Executable path: ${appPath}`)
-        console.log(`Status: exists=${reconSubmenuStatus[activeView].exists}, path=${appPath}`)
-        console.log(`Requesting embed...`)
-        
+
         // Small delay to ensure windows are hidden before embedding new one
         setTimeout(() => {
           window.api
             .embedWindow({ viewName: activeView, appPath })
-            .then((result) => {
-              console.log('Embed request result:', result)
-              if (!result.success) {
-                console.error('Embed failed:', result.message)
-              }
+            .then((_result) => {
               // Stop loading after embed completes (give it a moment to show)
               setTimeout(() => setIsLoading(false), 300)
             })
-            .catch((error) => {
-              console.error('Embed request failed:', error)
+            .catch((_error) => {
               setIsLoading(false)
             })
         }, 100)
@@ -231,21 +184,21 @@ function App(): React.ReactElement {
       }
 
       // Check if it's a Deformation submenu
-      if (deformationSubmenuStatus[activeView]?.exists && deformationSubmenuStatus[activeView].path) {
+      if (
+        deformationSubmenuStatus[activeView]?.exists &&
+        deformationSubmenuStatus[activeView].path
+      ) {
         const appPath = deformationSubmenuStatus[activeView].path!
-        console.log(`Deformation submenu selected: ${activeView}. Requesting embed...`)
-        
+
         // Small delay to ensure windows are hidden before embedding new one
         setTimeout(() => {
           window.api
             .embedWindow({ viewName: activeView, appPath })
-            .then((result) => {
-              console.log('Embed request result:', result.message)
+            .then((_result) => {
               // Stop loading after embed completes
               setTimeout(() => setIsLoading(false), 300)
             })
-            .catch((error) => {
-              console.error('Embed request failed:', error)
+            .catch((_error) => {
               setIsLoading(false)
             })
         }, 100)
@@ -255,82 +208,68 @@ function App(): React.ReactElement {
       // Check if it's a native app path
       const appPath = nativeAppPaths[activeView]
       if (appPath) {
-        console.log(`Native view selected: ${activeView}. Requesting embed...`)
-        
         // Small delay to ensure windows are hidden before embedding new one
         setTimeout(() => {
           window.api
             .embedWindow({ viewName: activeView, appPath })
-            .then((result) => {
-              console.log('Embed request result:', result.message)
+            .then((_result) => {
               // Stop loading after embed completes
               setTimeout(() => setIsLoading(false), 300)
             })
-            .catch((error) => {
-              console.error('Embed request failed:', error)
+            .catch((_error) => {
               setIsLoading(false)
             })
         }, 100)
         return
       }
 
-       // If it's not an embedded view (e.g., WorkList, Dicom Editor, Settings),
-       // embedded windows should already be hidden by hideWindows() above
-       console.log(`[App] View ${activeView} is not an embedded view. Embedded windows should be hidden.`)
-       
-       // Special logging for WorkList
-       if (activeView === 'WorkList') {
-         console.log(`[WorkList] === Not an embedded view, is webview ===`)
-         console.log(`[WorkList] URL: ${viewUrls['WorkList']}`)
-       }
-       
-       // For webviews, loading will stop when webview loads (handled by onLoad callback)
-       // If webview was already loaded (switching back), stop loading immediately
-       if (activeView === 'Settings' || !viewUrls[activeView]) {
-         console.log(`[App] Stopping loading for non-webview view: ${activeView}`)
-         setTimeout(() => {
-           console.log('[App] Setting isLoading to false')
-           setIsLoading(false)
-         }, 100)
-       } else {
-         // For webviews, check if it's already loaded
-         // Since we're now keeping webviews in DOM, they might already be loaded
-         // Give a small delay to check if webview loads, then stop loading
-         console.log(`[App] Webview detected for ${activeView}`)
-         
-         // Special logging for WorkList
-         if (activeView === 'WorkList') {
-           console.log(`[WorkList] === Webview detected, waiting for load ===`)
-           console.log(`[WorkList] URL: ${viewUrls['WorkList']}`)
-           console.log(`[WorkList] May already be loaded from previous visit`)
-         }
-         
-         // Short timeout - if webview is already loaded (from previous visit), it won't fire did-finish-load again
-         // So we stop loading after a short delay
-         setTimeout(() => {
-           console.log(`[App] Stopping loading for webview (may already be loaded): ${activeView}`)
-           
-           // Special logging for WorkList
-           if (activeView === 'WorkList') {
-             console.log(`[WorkList] === Stopping loading (short timeout) ===`)
-             console.log(`[WorkList] Webview should be visible now`)
-           }
-           
-           setIsLoading(false)
-         }, 200)
-         // Also set a longer timeout as fallback
-         loadingTimeoutRef.current = setTimeout(() => {
-           console.log(`[App] Webview load timeout reached, stopping loading: ${activeView}`)
-           
-           // Special logging for WorkList
-           if (activeView === 'WorkList') {
-             console.log(`[WorkList] === Load timeout reached ===`)
-           }
-           
-           setIsLoading(false)
-           loadingTimeoutRef.current = null
-         }, 5000) // 5 second timeout as fallback
-       }
+      // If it's not an embedded view (e.g., WorkList, Dicom Editor, Settings),
+      // embedded windows should already be hidden by hideWindows() above
+
+      // Handle BrowserView for web-based views
+      if (activeView === 'Settings' || !viewUrls[activeView]) {
+        // Hide all BrowserViews for non-webview views
+        for (const viewName of Object.keys(viewUrls)) {
+          window.api.hideBrowserView({ viewName }).catch(() => {
+            // Silent error
+          })
+        }
+        setTimeout(() => {
+          setIsLoading(false)
+        }, 100)
+      } else {
+        // This is a BrowserView (web-based view)
+        const url = viewUrls[activeView]
+        
+        // Create BrowserView if it doesn't exist, then show it
+        window.api
+          .createBrowserView({ viewName: activeView, url })
+          .then((result) => {
+            if (result.success) {
+              // Hide all other BrowserViews
+              for (const viewName of Object.keys(viewUrls)) {
+                if (viewName !== activeView) {
+                  window.api.hideBrowserView({ viewName }).catch(() => {
+                    // Silent error
+                  })
+                }
+              }
+              
+              // Show the active BrowserView
+              return window.api.showBrowserView({ viewName: activeView })
+            }
+            return result
+          })
+          .then(() => {
+            // Stop loading after BrowserView is shown
+            setTimeout(() => {
+              setIsLoading(false)
+            }, 200)
+          })
+          .catch((_error) => {
+            setIsLoading(false)
+          })
+      }
     })
 
     // Cleanup function
@@ -349,21 +288,12 @@ function App(): React.ReactElement {
 
     const updateBounds = () => {
       const bounds = contentEl.getBoundingClientRect()
-      
+
       // When using SetParent, coordinates are relative to parent window's client area
       // We need to convert screen coordinates to parent window client coordinates
       // For Electron, we send the screen coordinates and let the helper convert them
       // But actually, we should send content div position relative to the Electron window
-      
-      // Log bounds for debugging
-      console.log('[App] Content bounds:', {
-        x: bounds.x,
-        y: bounds.y,
-        width: bounds.width,
-        height: bounds.height,
-        menuVisible: isMenuVisible
-      })
-      
+
       // Send bounds for content area only (excluding menu)
       // These are screen coordinates, but SetParent child windows use parent client coords
       window.api.updateGeometry({
@@ -394,106 +324,6 @@ function App(): React.ReactElement {
       window.removeEventListener('resize', handleResize)
     }
   }, [isMenuVisible])
-
-  // Effect to periodically check WorkList webview URL
-  useEffect(() => {
-    if (activeView !== 'WorkList') {
-      return
-    }
-
-    console.log(`[WorkList] === Starting periodic URL check ===`)
-
-    const checkWorkListUrl = (): void => {
-      try {
-        console.log(`[WorkList] === Checking WorkList URL ===`)
-        
-        // Try to find WorkList webview by src attribute
-        const workListWebview = document.querySelector('webview[src*="30020"]') as any
-        console.log(`[WorkList] Found webview element:`, !!workListWebview)
-        
-        if (workListWebview) {
-          console.log(`[WorkList] Webview element found`)
-          console.log(`[WorkList] Webview tagName:`, workListWebview.tagName)
-          console.log(`[WorkList] Webview src attribute:`, workListWebview.src)
-          console.log(`[WorkList] Has getURL method:`, typeof workListWebview.getURL === 'function')
-          
-          // Try multiple ways to get URL
-          let currentUrl = 'unknown'
-          
-          try {
-            if (typeof workListWebview.getURL === 'function') {
-              currentUrl = workListWebview.getURL()
-              console.log(`[WorkList] URL via getURL(): ${currentUrl}`)
-            } else {
-              console.log(`[WorkList] getURL() method not available`)
-              
-              // Try src attribute
-              if (workListWebview.src) {
-                currentUrl = workListWebview.src
-                console.log(`[WorkList] URL via src attribute: ${currentUrl}`)
-              }
-            }
-          } catch (e) {
-            console.error(`[WorkList] Error calling getURL():`, e)
-            
-            // Fallback to src attribute
-            if (workListWebview.src) {
-              currentUrl = workListWebview.src
-              console.log(`[WorkList] URL via src attribute (fallback): ${currentUrl}`)
-            }
-          }
-          
-          console.log(`[WorkList] === Final URL check ===`)
-          console.log(`[WorkList] URL: ${currentUrl}`)
-          console.log(`[WorkList] URL type: ${typeof currentUrl}`)
-          console.log(`[WorkList] Timestamp: ${new Date().toISOString()}`)
-          
-          // Also try webContents if available
-          try {
-            if (typeof workListWebview.getWebContents === 'function') {
-              const webContents = workListWebview.getWebContents()
-              if (webContents && typeof webContents.getURL === 'function') {
-                const wcUrl = webContents.getURL()
-                console.log(`[WorkList] === URL via webContents ===`)
-                console.log(`[WorkList] URL: ${wcUrl}`)
-              }
-            }
-          } catch (e) {
-            console.log(`[WorkList] webContents not available`)
-          }
-        } else {
-          console.log(`[WorkList] === Webview element not found in DOM ===`)
-          
-          // Try to find any webview elements
-          const allWebviews = document.querySelectorAll('webview')
-          console.log(`[WorkList] Total webview elements in DOM: ${allWebviews.length}`)
-          
-          allWebviews.forEach((wv, idx) => {
-            const wvAny = wv as any
-            console.log(`[WorkList] Webview ${idx}: src=${wvAny.src}, hasGetURL=${typeof wvAny.getURL === 'function'}`)
-          })
-        }
-      } catch (e) {
-        console.error(`[WorkList] Error in periodic URL check:`, e)
-        console.error(`[WorkList] Error stack:`, (e as Error).stack)
-      }
-    }
-
-    // Check immediately
-    console.log(`[WorkList] === Immediate URL check ===`)
-    checkWorkListUrl()
-
-    // Check every second while WorkList is active
-    const intervalId = setInterval(() => {
-      console.log(`[WorkList] === Scheduled URL check ===`)
-      checkWorkListUrl()
-    }, 1000)
-
-    return () => {
-      clearInterval(intervalId)
-      console.log(`[WorkList] === Stopping periodic URL check ===`)
-    }
-  }, [activeView])
 
   const toggleMenu = (): void => {
     setIsMenuVisible(!isMenuVisible)
@@ -546,21 +376,8 @@ function App(): React.ReactElement {
     // This ensures menu clicks work even if embedded window is on top
     try {
       await window.api.hideAllWindows()
-      console.log('[App] Embedded windows hidden on menu click')
     } catch (error) {
-      console.error('[App] Failed to hide windows on menu click:', error)
-    }
-
-    console.log(`[App] === Menu click: ${item} ===`)
-    console.log(`[App] Previous activeView: ${activeView}`)
-    console.log(`[App] New activeView: ${item}`)
-    
-    // Special logging when switching to/from WorkList
-    if (activeView === 'WorkList' || item === 'WorkList') {
-      console.log(`[WorkList] === Menu transition ===`)
-      console.log(`[WorkList] From: ${activeView}`)
-      console.log(`[WorkList] To: ${item}`)
-      console.log(`[WorkList] Timestamp: ${new Date().toISOString()}`)
+      // Silent error
     }
 
     if (item === 'Recon') {
@@ -586,22 +403,10 @@ function App(): React.ReactElement {
     // Immediately hide all embedded windows when submenu is clicked
     try {
       await window.api.hideAllWindows()
-      console.log('[App] Embedded windows hidden on submenu click')
     } catch (error) {
-      console.error('[App] Failed to hide windows on submenu click:', error)
+      // Silent error
     }
-    
-    console.log(`[App] === Submenu click: ${submenu} ===`)
-    console.log(`[App] Previous activeView: ${activeView}`)
-    console.log(`[App] New activeView: ${submenu}`)
-    
-    // Special logging when switching from WorkList
-    if (activeView === 'WorkList') {
-      console.log(`[WorkList] === Switching away from WorkList ===`)
-      console.log(`[WorkList] To: ${submenu}`)
-      console.log(`[WorkList] Timestamp: ${new Date().toISOString()}`)
-    }
-    
+
     setActiveView(submenu)
   }
 
@@ -680,50 +485,35 @@ function App(): React.ReactElement {
 
     // For native apps, render an empty container. The main process will embed the window.
     // The embedded window will be shown by the main process, so we just need an empty container.
-    if (reconSubmenuStatus[activeView]?.exists || deformationSubmenuStatus[activeView]?.exists || nativeAppPaths[activeView]) {
+    if (
+      reconSubmenuStatus[activeView]?.exists ||
+      deformationSubmenuStatus[activeView]?.exists ||
+      nativeAppPaths[activeView]
+    ) {
       return (
-        <div id="native-view-container" style={{ width: '100%', height: '100%', background: 'transparent' }}>
+        <div
+          id="native-view-container"
+          style={{ width: '100%', height: '100%', background: 'transparent' }}
+        >
           {/* Empty container - embedded window will be displayed here by the main process */}
         </div>
       )
     }
 
-    // Render all webviews but only show the active one
-    // This keeps webviews loaded when switching between menus
-    // Use visibility instead of display to prevent webview reload
+    // BrowserView는 main 프로세스에서 관리되므로
+    // renderer에서는 빈 컨테이너만 렌더링
+    // BrowserView는 컨테이너 위에 overlay 형태로 표시됨
     return (
-      <>
-        {Object.entries(viewUrls).map(([viewName, url]) => (
-          <div
-            key={viewName}
-            style={{
-              width: '100%',
-              height: '100%',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              visibility: activeView === viewName ? 'visible' : 'hidden',
-              display: activeView === viewName ? 'block' : 'block', // Always block, use visibility
-              zIndex: activeView === viewName ? 1 : -1 // Bring active to front
-            }}
-          >
-            <Webview
-              key={viewName} // Use stable key to prevent remounting
-              viewName={viewName}
-              src={url}
-              onLoad={() => {
-                console.log(`[App] Webview onLoad callback called for ${viewName}`)
-                // Only stop loading if this is the active view
-                if (activeView === viewName && loadingTimeoutRef.current) {
-                  clearTimeout(loadingTimeoutRef.current)
-                  loadingTimeoutRef.current = null
-                  setIsLoading(false)
-                }
-              }}
-            />
-          </div>
-        ))}
-      </>
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          position: 'relative',
+          backgroundColor: '#f0f0f0'
+        }}
+      >
+        {/* BrowserView는 main 프로세스에서 이 영역에 표시됨 */}
+      </div>
     )
   }
 
@@ -839,7 +629,7 @@ function App(): React.ReactElement {
                       try {
                         await window.api.cancelDownload(downloadStatus.downloadId)
                       } catch (error) {
-                        console.error('Failed to cancel download:', error)
+                        // Silent error
                       }
                     }
                   }}
@@ -868,7 +658,7 @@ function App(): React.ReactElement {
                   try {
                     await window.api.showItemInFolder(path)
                   } catch (error) {
-                    console.error('Failed to open folder:', error)
+                    // Silent error
                   }
                 }
               }}
@@ -887,8 +677,8 @@ function App(): React.ReactElement {
               <li key={item}>
                 <button
                   onClick={(): void => {
-                    handleMenuClick(item).catch((error) => {
-                      console.error('Menu click error:', error)
+                    handleMenuClick(item).catch((_error) => {
+                      // Silent error
                     })
                   }}
                   style={{
@@ -911,8 +701,8 @@ function App(): React.ReactElement {
                         <li key={submenu}>
                           <button
                             onClick={(): void => {
-                              handleSubmenuClick(submenu).catch((error) => {
-                                console.error('Submenu click error:', error)
+                              handleSubmenuClick(submenu).catch((_error) => {
+                                // Silent error
                               })
                             }}
                             disabled={!isEnabled}
@@ -942,8 +732,8 @@ function App(): React.ReactElement {
                         <li key={submenu}>
                           <button
                             onClick={(): void => {
-                              handleSubmenuClick(submenu).catch((error) => {
-                                console.error('Submenu click error:', error)
+                              handleSubmenuClick(submenu).catch((_error) => {
+                                // Silent error
                               })
                             }}
                             disabled={!isEnabled}

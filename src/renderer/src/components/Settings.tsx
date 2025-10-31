@@ -22,7 +22,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose, onConfigChange }) => {
       setReconPaths(config.reconPaths || {})
       setDeformationPaths(config.deformationPaths || {})
     } catch (error) {
-      console.error('Failed to load config:', error)
+      // Silent error
     } finally {
       setIsLoading(false)
     }
@@ -36,7 +36,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose, onConfigChange }) => {
         setDownloadPath(result.path)
       }
     } catch (error) {
-      console.error('Failed to select folder:', error)
+      // Silent error
     }
   }
 
@@ -45,7 +45,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose, onConfigChange }) => {
       await window.api.setDownloadPath(null)
       setDownloadPath(null)
     } catch (error) {
-      console.error('Failed to reset download path:', error)
+      // Silent error
     }
   }
 
@@ -58,7 +58,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose, onConfigChange }) => {
         onConfigChange?.()
       }
     } catch (error) {
-      console.error('Failed to select file:', error)
+      // Silent error
     }
   }
 
@@ -70,7 +70,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose, onConfigChange }) => {
       setReconPaths(updated)
       onConfigChange?.()
     } catch (error) {
-      console.error('Failed to reset recon path:', error)
+      // Silent error
     }
   }
 
@@ -83,7 +83,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose, onConfigChange }) => {
         onConfigChange?.()
       }
     } catch (error) {
-      console.error('Failed to select folder:', error)
+      // Silent error
     }
   }
 
@@ -95,7 +95,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose, onConfigChange }) => {
       setDeformationPaths(updated)
       onConfigChange?.()
     } catch (error) {
-      console.error('Failed to reset deformation path:', error)
+      // Silent error
     }
   }
 
@@ -107,7 +107,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose, onConfigChange }) => {
       setDeformationPaths({})
       onConfigChange?.()
     } catch (error) {
-      console.error('Failed to reset config:', error)
+      // Silent error
     }
   }
 

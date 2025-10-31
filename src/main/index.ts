@@ -4,6 +4,7 @@ import { existsSync, readdirSync, statSync, writeFileSync, readFileSync, mkdirSy
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import windowManager from './windowManager'
+import browserViewManager from './browserViewManager'
 import { logger } from './logger'
 
 interface AppConfig {
@@ -168,13 +169,16 @@ function createWindow(): void {
     webPreferences: {
       preload: preloadPath,
       sandbox: false,
-      webviewTag: true,
+      webviewTag: false, // BrowserView 사용하므로 webviewTag 불필요
       nodeIntegration: false,
       contextIsolation: true
     }
   })
 
   logger.info('BrowserWindow created, ID:', mainWindow.id)
+
+  // Set main window for BrowserView manager
+  browserViewManager.setMainWindow(mainWindow)
 
   // Enable DevTools for debugging (always enabled for now)
   if (!is.dev) {
@@ -312,6 +316,8 @@ function createWindow(): void {
 
   ipcMain.on('app:update-geometry', (_event, bounds) => {
     windowManager.updateBounds(bounds)
+    // Also update BrowserView bounds
+    browserViewManager.updateBounds(bounds)
   })
 
   ipcMain.handle('app:hide-all-windows', async () => {
@@ -557,6 +563,47 @@ function createWindow(): void {
     }
     return { success: false, message: 'Download not found' }
   })
+
+  // --- BrowserView IPC ---
+  ipcMain.handle('app:create-browser-view', async (_event, { viewName, url }) => {
+    try {
+      const success = browserViewManager.createBrowserView(viewName, url)
+      return { success, message: success ? `BrowserView created for ${viewName}` : `Failed to create BrowserView for ${viewName}` }
+    } catch (error) {
+      logger.error(`Failed to create BrowserView for ${viewName}:`, error)
+      return { success: false, message: `Error: ${error}` }
+    }
+  })
+
+  ipcMain.handle('app:show-browser-view', async (_event, { viewName }) => {
+    try {
+      const success = browserViewManager.showBrowserView(viewName)
+      return { success, message: success ? `BrowserView shown for ${viewName}` : `Failed to show BrowserView for ${viewName}` }
+    } catch (error) {
+      logger.error(`Failed to show BrowserView for ${viewName}:`, error)
+      return { success: false, message: `Error: ${error}` }
+    }
+  })
+
+  ipcMain.handle('app:hide-browser-view', async (_event, { viewName }) => {
+    try {
+      const success = browserViewManager.hideBrowserView(viewName)
+      return { success, message: success ? `BrowserView hidden for ${viewName}` : `Failed to hide BrowserView for ${viewName}` }
+    } catch (error) {
+      logger.error(`Failed to hide BrowserView for ${viewName}:`, error)
+      return { success: false, message: `Error: ${error}` }
+    }
+  })
+
+  ipcMain.handle('app:get-browser-view-url', async (_event, { viewName }) => {
+    try {
+      const url = browserViewManager.getBrowserViewURL(viewName)
+      return { success: true, url }
+    } catch (error) {
+      logger.error(`Failed to get URL for BrowserView ${viewName}:`, error)
+      return { success: false, url: null }
+    }
+  })
   // --------------------------
 }
 
@@ -624,6 +671,7 @@ app.on('window-all-closed', () => {
   if (process.platform === 'win32') {
     windowManager.cleanup()
   }
+  browserViewManager.cleanup()
   if (process.platform !== 'darwin') {
     app.quit()
   }

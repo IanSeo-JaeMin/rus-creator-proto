@@ -26,6 +26,11 @@ interface ICustomAPI {
   resetConfig: () => Promise<{ success: boolean }>
   showItemInFolder: (filePath: string) => Promise<{ success: boolean }>
   cancelDownload: (downloadId: string) => Promise<{ success: boolean; message?: string }>
+  // BrowserView APIs
+  createBrowserView: (args: { viewName: string; url: string }) => Promise<{ success: boolean; message: string }>
+  showBrowserView: (args: { viewName: string }) => Promise<{ success: boolean; message: string }>
+  hideBrowserView: (args: { viewName: string }) => Promise<{ success: boolean; message: string }>
+  getBrowserViewURL: (args: { viewName: string }) => Promise<{ success: boolean; url: string | null }>
 }
 
 declare global {

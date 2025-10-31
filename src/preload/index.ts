@@ -20,7 +20,16 @@ const api = {
     ipcRenderer.invoke('app:set-deformation-path', args),
   resetConfig: () => ipcRenderer.invoke('app:reset-config'),
   showItemInFolder: (filePath: string) => ipcRenderer.invoke('app:show-item-in-folder', filePath),
-  cancelDownload: (downloadId: string) => ipcRenderer.invoke('app:cancel-download', downloadId)
+  cancelDownload: (downloadId: string) => ipcRenderer.invoke('app:cancel-download', downloadId),
+  // BrowserView APIs
+  createBrowserView: (args: { viewName: string; url: string }) =>
+    ipcRenderer.invoke('app:create-browser-view', args),
+  showBrowserView: (args: { viewName: string }) =>
+    ipcRenderer.invoke('app:show-browser-view', args),
+  hideBrowserView: (args: { viewName: string }) =>
+    ipcRenderer.invoke('app:hide-browser-view', args),
+  getBrowserViewURL: (args: { viewName: string }) =>
+    ipcRenderer.invoke('app:get-browser-view-url', args)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
