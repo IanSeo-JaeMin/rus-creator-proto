@@ -88,8 +88,9 @@ if (process.platform !== 'win32') {
     logger.info(`[ref-napi] trying to load native binding at: ${refNodePath}`)
 
     // 직접 .node 경로에서 require
-    const ffiBinding = require(ffiNodePath)
-    const refBinding = require(refNodePath)
+    // ⚙️ Load native bindings explicitly (side effect only)
+    // const _ffiBinding = require(ffiNodePath)
+    // const _refBinding = require(refNodePath)
 
     // 패키지 엔트리 파일 경로 지정
     const ffiMain = app.isPackaged

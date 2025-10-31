@@ -3,12 +3,9 @@
 /**
  * Post-install script for RUS Creator
  *
- * ✅ 개선사항:
- *  - 모든 관련 네이티브 모듈(ffi-napi, ref-napi, ref-struct-napi)을 한 번에 rebuild
- *  - Electron 버전을 package.json에서 자동 감지
- *  - 누락된 런타임 의존성(debug, ms, node-gyp-build 등) 자동 설치
- *  - Windows 환경에서만 rebuild 수행
- *  - CI/CD 환경에서도 안정적으로 종료
+ * - 자동으로 Electron 버전과 ABI 버전을 감지
+ * - ffi-napi, ref-napi, ref-struct-napi 모듈 rebuild
+ * - Windows에서만 실행
  */
 
 const fs = require('fs')
@@ -26,6 +23,9 @@ const ELECTRON_VERSION =
   (pkg.dependencies && pkg.dependencies.electron) ||
   '28.2.2'
 
+// Node ABI 버전 자동 감지
+const ABI_VERSION = process.versions.modules || 'unknown'
+
 const REQUIRED_MODULES = [
   'ffi-napi',
   'ref-napi',
@@ -36,10 +36,10 @@ const REQUIRED_MODULES = [
 ]
 
 console.log('\n[postinstall] === Dependency & Native Module Check Start ===\n')
+console.log(`[postinstall] Electron version: ${ELECTRON_VERSION}`)
+console.log(`[postinstall] Detected ABI version: ${ABI_VERSION}\n`)
 
-/**
- * Step 1️⃣ : 누락된 모듈 자동 설치
- */
+// Step 1️⃣ : 누락된 모듈 확인 및 설치
 for (const mod of REQUIRED_MODULES) {
   try {
     require.resolve(mod)
@@ -57,24 +57,13 @@ for (const mod of REQUIRED_MODULES) {
 
 console.log('\n[postinstall] Dependency check complete.\n')
 
-/**
- * Step 2️⃣ : Windows 환경에서만 네이티브 rebuild
- */
+// Step 2️⃣ : Windows 환경에서만 rebuild 실행
 if (platform() === 'win32') {
-  console.log(
-    `[postinstall] Windows detected → Electron ${ELECTRON_VERSION} rebuild process starting...\n`
-  )
-
-  const hasFFI = fs.existsSync(path.join(ROOT, 'node_modules/ffi-napi'))
-  if (!hasFFI) {
-    console.log('[postinstall] ffi-napi not found — skipping native rebuild.')
-    process.exit(0)
-  }
+  console.log(`[postinstall] Windows detected → rebuilding native modules...\n`)
 
   try {
-    const rebuildCmd = `npx electron-rebuild -f -w ffi-napi,ref-napi,ref-struct-napi --version ${ELECTRON_VERSION} --arch x64 --force-abi 115`
+    const rebuildCmd = `npx electron-rebuild -f -w ffi-napi,ref-napi,ref-struct-napi --version ${ELECTRON_VERSION} --arch x64`
     console.log(`[postinstall] Running: ${rebuildCmd}\n`)
-
     execSync(rebuildCmd, { stdio: 'inherit' })
     console.log(`\n✅ Native modules rebuilt successfully for Electron ${ELECTRON_VERSION}\n`)
   } catch (err) {
@@ -84,12 +73,9 @@ if (platform() === 'win32') {
     console.error('  1️⃣ Visual Studio Build Tools (Desktop development with C++)')
     console.error('  2️⃣ Python 3.x added to PATH')
     console.error('  3️⃣ node-gyp headers installed automatically')
-    console.error('\nThen run manually: pnpm run rebuild:win\n')
-    // 실패해도 install 전체를 중단하지 않음
-    process.exit(0)
   }
 } else {
-  console.log('[postinstall] Non-Windows platform → Skipping native module rebuild.\n')
+  console.log('[postinstall] Non-Windows platform → skipping rebuild.\n')
 }
 
 console.log('[postinstall] === Postinstall Completed ===\n')
