@@ -130,7 +130,7 @@ if (process.platform !== 'win32') {
           const parts = lastLine.split(':')
           if (parts.length > 1) {
             const hwnd = parts[1].trim()
-            const pid = parts.length > 2 ? parts[2].trim() : null
+            const pid = parts.length > 2 ? parts[2].trim() : undefined
             logger.info(`Helper returned success with HWND: ${hwnd}, PID: ${pid || 'N/A'}`)
             resolve({ success: true, output: output, hwnd: hwnd, pid: pid })
           } else {
@@ -173,7 +173,7 @@ if (process.platform !== 'win32') {
   let latestBounds = { x: 0, y: 0, width: 800, height: 600 }
   const embeddedWindows = new Map<
     string,
-    { process: ChildProcess | null; hwnd: string | null; pid: string | null; helperAvailable: boolean }
+    { process: ChildProcess | null; hwnd: string | null; pid: string | undefined; helperAvailable: boolean }
   >()
 
   // Check if helper is available
@@ -249,7 +249,7 @@ if (process.platform !== 'win32') {
 
       // Extract HWND and PID from result
       const childHwnd = result.hwnd || null
-      const pid = result.pid || null
+      const pid = result.pid || undefined
 
       if (!childHwnd) {
         logger.error(`Failed to get child HWND for ${viewName}`)
